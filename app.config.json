@@ -1,0 +1,26 @@
+{
+  "$schema": "./schemas/app-config.schema.json",
+  "name": "ORC Viewer",
+  "nameJa": "ORC Viewer",
+  "slug": "orc-viewer",
+  "version": "1.0.0",
+  "description": "Open Apache ORC files locally and inspect schema, stripes, column statistics, metadata, and data.",
+  "descriptionJa": "Apache ORCファイルをブラウザー内で開き、スキーマ・ストライプ・列統計・メタデータ・データを確認します。",
+  "defaultLanguage": "auto",
+  "repository": {
+    "owner": "ttomohisa",
+    "name": "htmlapps-orc-viewer"
+  },
+  "build": {
+    "output": "dist/index.html",
+    "blockRuntimeNetwork": true,
+    "selfExtract": {
+      "enabled": true,
+      "output": "dist/index.self-extract.html"
+    },
+    "sizeBudget": {
+      "readableWarningMb": 10,
+      "selfExtractWarningMb": 6
+    }
+  }
+}

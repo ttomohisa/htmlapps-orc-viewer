@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f5f5f2">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: blob:; media-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>ORC Viewer</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%20role%3D%22img%22%20aria-label%3D%22ORC%20Viewer%22%3E%0A%20%20%3Cpath%20d%3D%22M15%205h25l13%2013v31a7%207%200%200%201-7%207H15a7%207%200%200%201-7-7V12a7%207%200%200%201%207-7Z%22%20fill%3D%22%23fff%22%20stroke%3D%22%2316624F%22%20stroke-width%3D%225%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M40%205v13h13%22%20fill%3D%22none%22%20stroke%3D%22%2316624F%22%20stroke-width%3D%225%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%20%20%3Crect%20x%3D%223%22%20y%3D%2227%22%20width%3D%2234%22%20height%3D%2218%22%20rx%3D%224%22%20fill%3D%22%2316624F%22%2F%3E%0A%20%20%3Ctext%20x%3D%2220.0%22%20y%3D%2240.4%22%20fill%3D%22%23fff%22%20font-family%3D%22Arial%2CHelvetica%2Csans-serif%22%20font-size%3D%2215.5%22%20font-weight%3D%22800%22%20text-anchor%3D%22middle%22%20letter-spacing%3D%22-.3%22%3EORC%3C%2Ftext%3E%0A%20%20%3Ccircle%20cx%3D%2247%22%20cy%3D%2247%22%20r%3D%228.5%22%20fill%3D%22%23fff%22%20stroke%3D%22%2316624F%22%20stroke-width%3D%225%22%2F%3E%0A%20%20%3Cpath%20d%3D%22m53.2%2053.2%207%207%22%20fill%3D%22none%22%20stroke%3D%22%2316624F%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f5f2;
+      --surface: #ffffff;
+      --surface-muted: #f0f0ed;
+      --surface-hover: #e9e9e5;
+      --text: #20211f;
+      --muted: #666963;
+      --line: #dadbd6;
+      --line-strong: #bfc1ba;
+      --accent: #16624f;
+      --accent-hover: #0e503f;
+      --accent-soft: #e1f0ea;
+      --danger: #b3261e;
+      --danger-soft: #fce8e6;
+      --warning: #835700;
+      --warning-soft: #fff5d9;
+      --focus: #4d8bc7;
+      --shadow-sm: 0 1px 2px rgba(25,28,24,.08),0 1px 6px rgba(25,28,24,.04);
+      --shadow-md: 0 12px 34px rgba(25,28,24,.10);
+      --radius: 12px;
+      --header-height: 66px;
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP","Yu Gothic UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    button,input,select { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible {
+      outline: 3px solid color-mix(in srgb,var(--focus) 55%,transparent);
+      outline-offset: 2px;
+    }
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      height: var(--header-height);
+      border-bottom: 1px solid color-mix(in srgb,var(--line) 80%,transparent);
+      background: color-mix(in srgb,var(--bg) 92%,transparent);
+      backdrop-filter: blur(14px);
+    }
+    .header-inner {
+      width: min(1180px,calc(100% - 32px));
+      height: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand { min-width: 0; display: flex; align-items: center; gap: 11px; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 42px;
+      height: 42px;
+      background: transparent;
+      color: var(--accent);
+    }
+    .brand-mark svg { width: 40px; height: 40px; display: block; }
+    .brand-copy { min-width: 0; }
+    .brand-name { margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 780; letter-spacing: -.02em; white-space: nowrap; }
+    .version-badge { padding: 2px 6px; border-radius: 999px; background: var(--surface-muted); color: var(--muted); font-size: 10px; font-weight: 720; letter-spacing: .02em; }
+    .brand-meta { margin: 1px 0 0; color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .language-button,.icon-button {
+      border: 0;
+      background: transparent;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .language-button { min-width: 46px; padding: 8px 10px; font-size: 12px; font-weight: 750; }
+    .language-button:hover,.icon-button:hover { background: var(--surface-hover); }
+    .icon-button { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; }
+    .icon-button svg { width: 20px; height: 20px; }
+    .main { width: min(1180px,calc(100% - 32px)); margin: 0 auto; padding: 28px 0 54px; }
+    .page-intro { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding-bottom: 20px; }
+    .page-intro h1 { margin: 0; font-size: clamp(24px,3vw,34px); line-height: 1.18; letter-spacing: -.04em; }
+    .page-intro p { max-width: 720px; margin: 8px 0 0; color: var(--muted); line-height: 1.75; }
+    .local-badge {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 7px 10px;
+      border: 1px solid color-mix(in srgb,var(--accent) 24%,var(--line));
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 760;
+    }
+    .local-badge svg { width: 17px; height: 17px; }
+    .shell { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); }
+    .drop-shell { padding: 18px; }
+    .dropzone {
+      display: grid;
+      place-items: center;
+      min-height: 244px;
+      padding: 30px 18px;
+      border: 1.5px dashed var(--line-strong);
+      border-radius: 14px;
+      background: var(--surface-muted);
+      text-align: center;
+      transition: border-color .16s ease,background .16s ease,transform .16s ease;
+    }
+    .dropzone.dragover { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-1px); }
+    .drop-icon { display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 13px; border-radius: 16px; background: var(--surface); color: var(--accent); box-shadow: var(--shadow-sm); }
+    .drop-icon svg { width: 30px; height: 30px; }
+    .dropzone h2 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
+    .dropzone p { margin: 7px 0 15px; color: var(--muted); font-size: 13px; }
+    .supported { margin-top: 12px !important; font-size: 11px !important; }
+    .button {
+      min-height: 42px;
+      padding: 9px 13px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 720;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      text-decoration: none;
+    }
+    .button:hover { border-color: var(--line-strong); background: var(--surface-hover); }
+    .button.primary { border-color: var(--accent); background: var(--accent); color: #fff; }
+    .button.primary:hover { border-color: var(--accent-hover); background: var(--accent-hover); }
+    .button svg { width: 17px; height: 17px; flex: 0 0 auto; }
+    .button:disabled { cursor: not-allowed; opacity: .48; }
+    .hidden-input { position: fixed; left: -9999px; opacity: 0; }
+    .file-manager { display: none; margin-bottom: 14px; }
+    .file-manager.show { display: block; }
+    .file-manager-inner { padding: 10px; display: flex; align-items: center; gap: 10px; }
+    .file-tabs { min-width: 0; flex: 1 1 auto; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; }
+    .file-tab {
+      max-width: 280px;
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 9px 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+    .file-tab.active { border-color: color-mix(in srgb,var(--accent) 52%,var(--line)); background: var(--accent-soft); }
+    .file-tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
+    .file-tab-close { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
+    .file-tab-close:hover { background: color-mix(in srgb,var(--surface-hover) 84%,transparent); color: var(--text); }
+    .file-tab-close svg { width: 15px; height: 15px; }
+    .file-select-wrap { display: none; min-width: 0; flex: 1; }
+    select,input[type="text"],input[type="number"] {
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--text);
+      padding: 7px 10px;
+    }
+    select:hover,input:hover { border-color: var(--line-strong); }
+    .content { display: none; }
+    .content.show { display: block; }
+    .status-banner {
+      display: none;
+      align-items: flex-start;
+      gap: 9px;
+      margin-bottom: 14px;
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+      font-size: 13px;
+    }
+    .status-banner.show { display: flex; }
+    .status-banner.warning { border-color: #e4c36c; background: var(--warning-soft); color: var(--warning); }
+    .status-banner.error { border-color: #efb4ae; background: var(--danger-soft); color: var(--danger); }
+    .status-banner svg { width: 18px; height: 18px; margin-top: 1px; flex: 0 0 auto; }
+    .app-page { margin-bottom: 14px; }
+    .section { overflow: hidden; }
+    .section + .section { margin-top: 14px; }
+    .section-head { padding: 15px 17px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--line); }
+    .section-title-wrap { min-width: 0; }
+    .section-head h2 { margin: 0; font-size: 15px; letter-spacing: -.015em; }
+    .section-head p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+    .section-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .section-body { padding: 16px 17px 18px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 9px; }
+    .summary-card { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-muted); }
+    .summary-label { display: block; color: var(--muted); font-size: 10px; font-weight: 720; letter-spacing: .02em; text-transform: uppercase; }
+    .summary-value { display: block; margin-top: 4px; font-size: 16px; font-weight: 780; line-height: 1.3; overflow-wrap: anywhere; }
+    .summary-value.small { font-size: 12px; font-weight: 700; }
+    .details-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 22px; margin-top: 14px; }
+    .detail-row { min-width: 0; display: grid; grid-template-columns: minmax(110px,.7fr) minmax(0,1.3fr); gap: 12px; align-items: start; padding: 9px 0; border-top: 1px solid var(--line); }
+    .detail-label { color: var(--muted); font-size: 11px; }
+    .detail-value { min-width: 0; font-size: 12px; font-weight: 650; overflow-wrap: anywhere; }
+    .detail-control { width: 100%; }
+    .notice { margin-top: 13px; padding: 10px 11px; border: 1px solid color-mix(in srgb,var(--warning) 28%,var(--line)); border-radius: 10px; background: var(--warning-soft); color: #674600; font-size: 12px; line-height: 1.65; }
+    .table-wrap { position: relative; width: 100%; overflow: auto; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+    th,td { padding: 9px 10px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); text-align: left; vertical-align: top; white-space: nowrap; }
+    th:last-child,td:last-child { border-right: 0; }
+    tbody tr:last-child td { border-bottom: 0; }
+    th { position: sticky; top: 0; z-index: 2; background: #f7f7f4; color: var(--muted); font-size: 10px; font-weight: 780; letter-spacing: .02em; }
+    tbody tr:hover td { background: #fbfbf9; }
+    tbody tr.deleted td { background: #fff9f8; color: color-mix(in srgb,var(--text) 73%,var(--muted)); }
+    .field-name { font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color: var(--text); font-weight: 720; }
+    .type-badge { display: inline-flex; align-items: center; min-height: 20px; padding: 2px 6px; border-radius: 999px; background: var(--surface-muted); color: var(--muted); font-size: 10px; font-weight: 760; }
+    .deleted-badge { display: inline-flex; align-items: center; padding: 2px 6px; border-radius: 999px; background: var(--danger-soft); color: var(--danger); font-size: 10px; font-weight: 760; }
+    .cell-button {
+      display: block;
+      width: 100%;
+      max-width: 260px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      color: inherit;
+      cursor: pointer;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cell-button:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+    .null-value { color: #8b8e87; font-style: italic; }
+    .binary-value,.memo-value { color: var(--accent); font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size: 11px; }
+    .sort-button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: inherit; padding: 0 13px 0 0; position: relative; cursor: pointer; }
+    .sort-button::after { content: ""; position: absolute; right: 1px; top: 50%; width: 0; height: 0; opacity: 0; transform: translateY(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; }
+    .sort-button.asc::after { opacity: 1; border-bottom: 6px solid var(--accent); margin-top: -2px; }
+    .sort-button.desc::after { opacity: 1; border-top: 6px solid var(--accent); margin-top: 2px; }
+    .table-empty { padding: 28px 16px; text-align: center; color: var(--muted); font-size: 13px; }
+    .data-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 11px; }
+    .control-group { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+    .field-control { display: grid; gap: 4px; }
+    .field-control > span { color: var(--muted); font-size: 10px; font-weight: 700; }
+    .field-control select { min-width: 86px; }
+    .toggle-label { min-height: 40px; display: inline-flex; align-items: center; gap: 7px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 11px; font-weight: 680; cursor: pointer; }
+    .toggle-label input { accent-color: var(--accent); }
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 12px; flex-wrap: wrap; }
+    .page-info { min-width: 104px; text-align: center; color: var(--muted); font-size: 11px; }
+    .page-jump { width: 72px; text-align: center; }
+    .export-panel { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .export-filename { display: grid; gap: 4px; min-width: min(100%,300px); }
+    .export-filename > span { color: var(--muted); font-size: 10px; font-weight: 700; }
+    .filename-control { display: flex; align-items: stretch; }
+    .filename-control input { min-width: 0; flex: 1 1 auto; border-radius: 10px 0 0 10px; }
+    .filename-extension { display: flex; align-items: center; padding: 0 10px; border: 1px solid var(--line); border-left: 0; border-radius: 0 10px 10px 0; background: var(--surface-muted); color: var(--muted); font-size: 11px; font-weight: 700; }
+    .export-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .loading-box { display: none; align-items: center; justify-content: center; gap: 9px; min-height: 150px; color: var(--muted); }
+    .loading-box.show { display: flex; }
+    .spinner { width: 20px; height: 20px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .app-toast {
+      position: fixed;
+      z-index: 90;
+      left: 50%;
+      bottom: calc(18px + env(safe-area-inset-bottom));
+      transform: translate(-50%,18px);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: min(360px,calc(100vw - 32px));
+      max-width: min(520px,calc(100vw - 32px));
+      padding: 11px 12px 11px 14px;
+      border: 1px solid #40443d;
+      border-radius: 12px;
+      background: #262923;
+      color: #fff;
+      box-shadow: var(--shadow-md);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .16s ease,transform .16s ease;
+    }
+    .app-toast.show { opacity: 1; transform: translate(-50%,0); pointer-events: auto; }
+    .app-toast-message { min-width: 0; flex: 1; font-size: 12px; }
+    .app-toast-action { border: 0; border-radius: 8px; background: transparent; color: #b9eadb; font-weight: 780; cursor: pointer; padding: 6px 7px; }
+    dialog { width: min(620px,calc(100% - 28px)); max-width: 100%; padding: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); box-shadow: var(--shadow-md); }
+    dialog::backdrop { background: rgba(15,17,14,.52); backdrop-filter: blur(4px); }
+    .dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 17px; border-bottom: 1px solid var(--line); }
+    .dialog-header h2 { margin: 0; font-size: 16px; letter-spacing: -.015em; }
+    .dialog-body { padding: 17px 18px 24px; overflow: auto; max-height: calc(100dvh - 90px); }
+    .dialog-body h3 { margin: 22px 0 8px; padding-top: 17px; border-top: 1px solid var(--line); font-size: 13px; }
+    .dialog-body h3:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+    .dialog-body p,.dialog-body li { color: var(--muted); font-size: 12px; line-height: 1.75; }
+    .dialog-body ul,.dialog-body ol { padding-left: 21px; }
+    .dialog-note { padding: 10px 11px; border: 1px solid color-mix(in srgb,var(--accent) 22%,var(--line)); border-radius: 10px; background: var(--accent-soft); color: var(--text) !important; }
+    .cell-meta { display: grid; grid-template-columns: 105px minmax(0,1fr); gap: 8px 12px; padding-bottom: 13px; border-bottom: 1px solid var(--line); }
+    .cell-meta dt { color: var(--muted); font-size: 11px; }
+    .cell-meta dd { margin: 0; min-width: 0; font-size: 12px; font-weight: 650; overflow-wrap: anywhere; }
+    .cell-value-box { margin-top: 13px; min-height: 90px; max-height: 45vh; overflow: auto; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-muted); font: 12px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .columns-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+    .column-option { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 9px; border: 1px solid var(--line); border-radius: 9px; }
+    .column-option input { accent-color: var(--accent); }
+    .column-option span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .mobile-bottom-bar { display: none; }
+    .footer { padding: 12px 4px 0; display: flex; justify-content: center; color: var(--muted); font-size: 10px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    @media (max-width: 860px) {
+      .summary-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .details-grid { grid-template-columns: 1fr; }
+      .page-intro { align-items: stretch; flex-direction: column; gap: 10px; }
+      .local-badge { align-self: flex-start; }
+    }
+    @media (max-width: 620px) {
+      :root { --header-height: 58px; }
+      body.has-mobile-bar { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+      .header-inner,.main { width: min(100% - 24px,1180px); }
+      .brand-mark { width: 36px; height: 36px; }
+      .brand-mark svg { width: 34px; height: 34px; }
+      .brand-name { font-size: 14px; }
+      .brand-meta { display: none; }
+      .header-actions { gap: 3px; }
+      .main { padding-top: 18px; padding-bottom: 28px; }
+      .page-intro { padding-bottom: 14px; }
+      .page-intro h1 { font-size: 25px; }
+      .drop-shell { padding: 12px; }
+      .dropzone { min-height: 216px; padding: 24px 13px; }
+      .file-manager-inner { align-items: stretch; }
+      .file-tabs { display: none; }
+      .file-select-wrap { display: block; }
+      .file-select-wrap select { width: 100%; }
+      .section-head { align-items: stretch; flex-direction: column; padding: 13px 14px; }
+      .section-body { padding: 13px 14px 15px; }
+      .summary-grid { gap: 7px; }
+      .summary-card { padding: 10px; }
+      .summary-value { font-size: 14px; }
+      .detail-row { grid-template-columns: 105px minmax(0,1fr); gap: 10px; }
+      .data-toolbar,.export-panel { align-items: stretch; flex-direction: column; }
+      .control-group,.export-actions { width: 100%; }
+      .field-control { flex: 1 1 auto; min-width: 96px; }
+      .field-control select { width: 100%; }
+      .toggle-label { flex: 1 1 auto; justify-content: center; }
+      .export-filename { min-width: 100%; width: 100%; }
+      .export-actions .button { flex: 1 1 0; }
+      .pagination .button { min-width: 42px; padding-inline: 9px; }
+      .columns-list { grid-template-columns: 1fr; }
+      dialog { width: 100%; max-width: none; margin: auto 0 0; border-width: 1px 0 0; border-radius: 22px 22px 0 0; }
+      .dialog-body { padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
+      .app-page { display: none; }
+      .app-page.mobile-active { display: block; }
+      .mobile-bottom-bar {
+        position: fixed;
+        z-index: 55;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: none;
+        grid-template-columns: repeat(3,minmax(0,1fr));
+        gap: 3px;
+        padding: 7px 9px calc(7px + env(safe-area-inset-bottom));
+        border-top: 1px solid var(--line);
+        background: color-mix(in srgb,var(--surface) 96%,transparent);
+        backdrop-filter: blur(14px);
+        box-shadow: 0 -8px 28px rgba(25,28,24,.08);
+      }
+      .mobile-bottom-bar.show { display: grid; }
+      .mobile-nav-button { min-height: 51px; display: grid; place-items: center; align-content: center; gap: 2px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); cursor: pointer; font-size: 10px; font-weight: 720; }
+      .mobile-nav-button svg { width: 19px; height: 19px; }
+      .mobile-nav-button.active { background: var(--accent-soft); color: var(--accent); }
+      .footer { display: none; }
+    }
+    @media (max-width: 380px) {
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+      .button { padding-inline: 10px; }
+      .page-info { min-width: 88px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *,*::before,*::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  
+    .view-switch { display:inline-flex; align-items:center; padding:3px; gap:2px; border:1px solid var(--line); background:var(--surface-muted); border-radius:10px; }
+    .view-switch button { border:0; background:transparent; color:var(--muted); min-height:32px; padding:5px 10px; border-radius:7px; cursor:pointer; font-size:12px; font-weight:720; }
+    .view-switch button.active { background:var(--surface); color:var(--accent); box-shadow:var(--shadow-sm); }
+    .issue-badge,.ok-badge,.type-mix-badge { display:inline-flex; align-items:center; min-height:22px; padding:2px 7px; border-radius:999px; font-size:10px; font-weight:760; white-space:nowrap; }
+    .issue-badge { background:var(--warning-soft); color:var(--warning); }
+    .ok-badge { background:var(--accent-soft); color:var(--accent); }
+    .type-mix-badge { background:var(--warning-soft); color:var(--warning); margin-left:6px; }
+    .analysis-progress { margin-top:14px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--surface-muted); }
+    .analysis-progress[hidden] { display:none; }
+    .progress-row { display:flex; align-items:center; justify-content:space-between; gap:12px; color:var(--muted); font-size:12px; }
+    .progress-track { height:6px; margin-top:8px; overflow:hidden; border-radius:999px; background:var(--line); }
+    .progress-value { height:100%; width:0; background:var(--accent); border-radius:inherit; transition:width .15s ease; }
+    .issue-panel { margin-top:14px; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+    .issue-panel[hidden] { display:none; }
+    .issue-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; background:var(--surface-muted); border-bottom:1px solid var(--line); }
+    .issue-head strong { font-size:12px; }
+    .issue-list { max-height:320px; overflow:auto; }
+    .issue-row { width:100%; display:grid; grid-template-columns:minmax(78px,auto) minmax(0,1fr); gap:10px; text-align:left; border:0; border-bottom:1px solid var(--line); background:var(--surface); padding:10px 12px; cursor:pointer; }
+    .issue-row:last-child { border-bottom:0; }
+    .issue-row:hover { background:var(--surface-muted); }
+    .issue-line { color:var(--accent); font-weight:760; font-variant-numeric:tabular-nums; }
+    .issue-copy { min-width:0; }
+    .issue-message { color:var(--text); font-size:12px; font-weight:650; }
+    .issue-raw { color:var(--muted); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px; }
+    .field-types { display:flex; flex-wrap:wrap; gap:4px; }
+    .field-type-chip { display:inline-flex; align-items:center; padding:2px 6px; border-radius:6px; background:var(--surface-muted); color:var(--muted); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10px; }
+    .line-cell { white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--muted); }
+    .line-status { display:inline-flex; align-items:center; gap:5px; }
+    .raw-invalid { max-width:380px; color:var(--warning); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; }
+    .record-list { display:grid; gap:10px; }
+    .record-card { border:1px solid var(--line); border-radius:10px; background:var(--surface); overflow:hidden; }
+    .record-card[open] { box-shadow:var(--shadow-sm); }
+    .record-card > summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:9px; min-height:44px; padding:9px 12px; }
+    .record-card > summary::-webkit-details-marker { display:none; }
+    .record-card > summary:hover { background:var(--surface-muted); }
+    .record-line { color:var(--accent); font-weight:760; font-variant-numeric:tabular-nums; }
+    .record-summary-text { min-width:0; flex:1; color:var(--muted); font-size:12px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .record-pre { margin:0; padding:13px 14px; max-height:420px; overflow:auto; border-top:1px solid var(--line); background:#fafaf8; white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:var(--text); }
+    .issue-count-note { color:var(--muted); font-size:11px; }
+    .data-view-hidden { display:none !important; }
+    .toolbar-spacer { flex:1; }
+    .field-name-wrap { display:flex; align-items:center; gap:6px; min-width:0; }
+    @media (max-width: 720px) {
+      .view-switch { width:100%; }
+      .view-switch button { flex:1; }
+      .issue-row { grid-template-columns:72px minmax(0,1fr); }
+      .record-card > summary { align-items:flex-start; flex-wrap:wrap; }
+      .record-summary-text { flex-basis:100%; }
+    }
+
+  
+    .overview-subsections { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; margin-top:14px; }
+    .subpanel { min-width:0; border:1px solid var(--line); border-radius:11px; overflow:hidden; background:var(--surface); }
+    .subpanel-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-bottom:1px solid var(--line); background:var(--surface-muted); }
+    .subpanel-head strong { font-size:12px; }
+    .subpanel-body { max-height:280px; overflow:auto; }
+    .mini-table { width:100%; border-collapse:collapse; font-size:11px; }
+    .mini-table th,.mini-table td { padding:8px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    .mini-table th { position:sticky; top:0; z-index:1; background:var(--surface-muted); color:var(--muted); font-size:10px; font-weight:760; }
+    .mini-table tr:last-child td { border-bottom:0; }
+    .mini-key { max-width:180px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; overflow-wrap:anywhere; }
+    .mini-value { min-width:0; overflow-wrap:anywhere; }
+    .schema-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+    .schema-tree { display:grid; gap:5px; }
+    .schema-node { border-left:1px solid var(--line); margin-left:7px; padding-left:11px; }
+    .schema-row { min-height:32px; display:flex; align-items:center; gap:8px; min-width:0; }
+    .schema-name { min-width:0; overflow-wrap:anywhere; font:600 12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+    .schema-type { flex:0 0 auto; padding:2px 6px; border-radius:999px; background:var(--surface-muted); color:var(--muted); font-size:10px; font-weight:760; }
+    .schema-logical { color:var(--accent); font-size:10px; font-weight:700; }
+    .schema-children { margin-left:8px; }
+    .raw-schema { margin:0; max-height:58vh; overflow:auto; padding:13px; border:1px solid var(--line); border-radius:10px; background:var(--surface-muted); font:11px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; white-space:pre; }
+    .schema-view-hidden { display:none !important; }
+    .unsupported-codec { color:var(--danger); font-weight:750; }
+    @media (max-width:860px){ .overview-subsections{grid-template-columns:1fr;} }
+    @media (max-width:620px){ .subpanel-body{max-height:220px;} .schema-toolbar{align-items:stretch;} }
+
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ORC Viewer">
+  <path d="M15 5h25l13 13v31a7 7 0 0 1-7 7H15a7 7 0 0 1-7-7V12a7 7 0 0 1 7-7Z" fill="#fff" stroke="#16624F" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M40 5v13h13" fill="none" stroke="#16624F" stroke-width="5" stroke-linejoin="round"/>
+  <rect x="3" y="27" width="34" height="18" rx="4" fill="#16624F"/>
+  <text x="20.0" y="40.4" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="15.5" font-weight="800" text-anchor="middle" letter-spacing="-.3">ORC</text>
+  <circle cx="47" cy="47" r="8.5" fill="#fff" stroke="#16624F" stroke-width="5"/>
+  <path d="m53.2 53.2 7 7" fill="none" stroke="#16624F" stroke-width="5" stroke-linecap="round"/>
+</svg>
+        </div>
+        <div class="brand-copy"><p class="brand-name"><span id="brandName">ORC Viewer</span><span class="version-badge" id="versionBadge">v1.0.0</span></p><p class="brand-meta" data-i18n="brandMeta">ORCをブラウザー内で確認</p></div>
+      </div>
+      <div class="header-actions">
+        <button class="language-button" id="languageButton" type="button" aria-label="Switch language">EN</button>
+        <button class="icon-button" id="helpButton" type="button" data-i18n-title="helpTitle" data-i18n-aria-label="helpTitle" title="使い方と注意事項" aria-label="使い方と注意事項"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.35 2.35 0 1 1 3.72 1.9c-.92.67-1.52 1.12-1.52 2.1"/><path d="M12 17h.01"/></svg></button>
+      </div>
+    </div>
+  </header>
+  <main class="main">
+    <section class="page-intro" aria-labelledby="heroTitle"><div><h1 id="heroTitle" data-i18n="introTitle">ORCを開いてスキーマとデータを確認</h1><p data-i18n="lead">ORCファイルのスキーマ、ストライプ、列統計、データを確認します。必要なストライプだけ読み込みます。</p></div><div class="local-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8 7 10 4.2-2 7-5.4 7-10V6z"/><path d="m9 12 2 2 4-5"/></svg><span data-i18n="localBadge">完全ローカル処理</span></div></section>
+    <!-- APP:BEGIN -->
+    <section class="shell drop-shell" id="emptyState"><div class="dropzone" id="dropzone" tabindex="0" role="button" aria-describedby="dropDescription"><div><div class="drop-icon" aria-hidden="true"><svg viewBox="0 0 1254 1254" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g transform="translate(0,1254) scale(0.1,-0.1)" fill="#16624F"><path d="M6170 10966 c-126 -35 -216 -110 -273 -225 l-32 -66 -3 -1987 c-1 -1283 -6 -1988 -12 -1988 -10 0 -315 297 -777 755 -215 213 -252 245 -320 280 -77 39 -80 40 -183 40 -98 0 -110 -3 -171 -32 -82 -40 -159 -115 -196 -190 -26 -54 -28 -67 -28 -173 0 -110 2 -119 32 -180 18 -36 43 -76 56 -90 33 -35 1028 -1021 1447 -1436 256 -253 358 -348 397 -367 97 -50 224 -52 321 -6 48 23 94 68 1356 1319 569 564 522 514 551 576 39 82 50 174 31 263 -27 129 -101 223 -222 282 -65 32 -75 34 -175 34 -105 0 -107 -1 -183 -40 -69 -36 -120 -84 -581 -537 -278 -274 -510 -498 -515 -498 -6 0 -10 707 -10 1963 0 1584 -3 1973 -13 2013 -25 97 -101 196 -189 247 -87 52 -214 69 -308 43z"/><path d="M2930 6701 c-48 -15 -105 -50 -136 -83 -26 -27 -184 -240 -235 -314 -25 -39 -252 -348 -281 -384 -15 -19 -62 -82 -104 -140 -247 -337 -667 -896 -842 -1120 -40 -51 -83 -112 -95 -135 l-22 -40 0 -1165 0 -1165 23 -79 c40 -139 94 -229 202 -337 85 -86 107 -102 200 -147 195 -94 -308 -84 4575 -87 2791 -2 4354 0 4415 7 317 32 565 237 672 553 l23 70 3 1154 c2 1022 1 1160 -13 1200 -17 50 -18 51 -274 387 -213 279 -341 448 -496 659 -65 88 -150 203 -189 255 -39 53 -105 142 -146 199 -41 58 -111 153 -155 213 -44 60 -116 159 -160 220 -156 217 -184 245 -278 273 -42 13 -147 15 -641 15 l-591 0 -250 -250 c-137 -137 -251 -254 -253 -260 -3 -7 236 -10 762 -10 l765 0 75 -107 c41 -60 103 -147 138 -194 35 -48 131 -180 213 -294 83 -114 265 -363 407 -553 l256 -347 -1236 -5 c-1163 -5 -1240 -6 -1292 -24 -119 -39 -232 -141 -270 -244 -22 -59 -107 -341 -142 -471 -34 -131 -123 -237 -237 -283 l-56 -23 -995 0 -995 0 -67 32 c-81 38 -145 96 -181 161 -15 27 -43 105 -63 173 -19 68 -53 183 -74 255 -47 165 -67 207 -120 267 -52 59 -107 97 -185 128 l-60 24 -1243 3 -1243 3 38 52 c20 29 116 158 212 287 96 129 197 267 226 305 62 83 188 257 305 420 47 65 117 161 156 214 38 53 89 124 112 159 l43 62 749 0 c411 0 756 3 765 6 13 5 -41 65 -236 260 l-254 254 -600 -1 c-330 0 -611 -4 -625 -8z m1440 -2565 c0 -7 22 -87 49 -177 156 -522 167 -547 280 -659 87 -87 164 -131 277 -160 75 -19 115 -20 1288 -20 1343 0 1286 -2 1426 66 55 27 96 58 151 113 114 114 124 138 290 704 l43 147 1313 0 1313 0 -2 -967 -3 -968 -27 -51 c-29 -56 -81 -100 -140 -121 -32 -11 -793 -13 -4364 -14 l-4325 0 -42 20 c-57 28 -105 76 -131 131 -21 45 -21 54 -24 1008 l-2 962 1315 0 c1109 0 1315 -2 1315 -14z"/></g></svg></div><h2 data-i18n="dropTitle">ORCファイルをここにドロップ</h2><p id="dropDescription" data-i18n="dropBody">ファイル全体を表へ展開せず、スキーマとストライプ構成を先に確認します。</p><button class="button primary" id="chooseButton" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5h6l2-2h9v13h-17z"/><path d="M3.5 9.5h17"/></svg><span data-i18n="chooseFiles">ファイルを選択</span></button><p class="supported" data-i18n="supportedFormats">対応: .orc</p></div></div></section>
+    <input class="hidden-input" id="fileInput" type="file" accept=".orc,application/octet-stream" multiple>
+    <section class="shell file-manager" id="fileManager" aria-label="Open files"><div class="file-manager-inner"><div class="file-tabs" id="fileTabs"></div><label class="file-select-wrap"><span class="sr-only" data-i18n="openFile">開いているファイル</span><select id="fileSelect" aria-label="Open files"></select></label><button class="button" id="addFilesButton" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="addFiles">追加</span></button></div></section>
+    <div class="status-banner" id="statusBanner" role="status" aria-live="polite"></div>
+    <div class="content" id="content">
+      <div class="app-page mobile-active" id="pageOverview" data-mobile-page="overview"><section class="shell section"><div class="section-head"><div class="section-title-wrap"><h2 data-i18n="overviewTitle">ファイル情報</h2><p id="activeFileSubtitle"></p></div></div><div class="section-body"><div class="summary-grid" id="summaryGrid"></div><div class="details-grid" id="detailsGrid"></div><div class="overview-subsections"><div class="subpanel"><div class="subpanel-head"><strong data-i18n="metadataTitle">メタデータ</strong><span id="metadataCount"></span></div><div class="subpanel-body" id="metadataWrap"></div></div><div class="subpanel"><div class="subpanel-head"><strong data-i18n="blocksTitle">ストライプ</strong><span id="blocksCount"></span></div><div class="subpanel-body" id="blocksWrap"></div></div><div class="subpanel"><div class="subpanel-head"><strong data-i18n="statisticsTitle">列統計</strong><span id="statisticsCount"></span></div><div class="subpanel-body" id="statisticsWrap"></div></div></div></div></section></div>
+      <div class="app-page" id="pageFields" data-mobile-page="fields"><section class="shell section"><div class="section-head"><div class="section-title-wrap"><h2 data-i18n="schemaTitle">スキーマ</h2><p id="schemaSubtitle"></p></div><div class="section-actions"><div class="view-switch" aria-label="Schema view"><button id="schemaTreeButton" class="active" type="button" data-i18n="treeView">Tree</button><button id="schemaRawButton" type="button" data-i18n="rawView">Raw</button></div><button class="button" id="copySchemaButton" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span data-i18n="copySchema">スキーマをコピー</span></button></div></div><div class="section-body"><div id="schemaTree" class="schema-tree"></div><pre id="schemaRaw" class="raw-schema schema-view-hidden"></pre></div></section></div>
+      <div class="app-page" id="pageData" data-mobile-page="data"><section class="shell section"><div class="section-head"><div class="section-title-wrap"><h2 data-i18n="dataTitle">データプレビュー</h2><p data-i18n="dataSubtitle">現在ページに必要なストライプだけ読み込みます。</p></div><div class="section-actions"><div class="view-switch" aria-label="View mode"><button id="tableModeButton" class="active" type="button" data-i18n="tableView">Table</button><button id="recordModeButton" type="button" data-i18n="recordView">Record</button></div><button class="button" id="columnsButton" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4zM10 5v14M16 5v14"/></svg><span data-i18n="columns">列</span></button></div></div><div class="section-body"><div class="data-toolbar"><div class="control-group"><label class="field-control"><span data-i18n="rowsPerPage">1ページの行数</span><select id="pageSizeSelect"><option value="50">50</option><option value="100" selected>100</option><option value="250">250</option><option value="500">500</option><option value="1000">1000</option></select></label></div><div id="pageRangeLabel" class="page-info"></div></div><div class="loading-box" id="dataLoading"><span class="spinner" aria-hidden="true"></span><span data-i18n="loadingRecords">レコードを読み込み中…</span></div><div class="table-wrap" id="dataTableWrap"></div><div class="record-list data-view-hidden" id="recordList"></div><div class="pagination" id="pagination"><button class="button" id="prevButton" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14.5 6-6 6 6 6"/></svg><span data-i18n="previous">前へ</span></button><div class="page-info" id="pageInfo"></div><label><span class="sr-only" data-i18n="pageNumber">ページ番号</span><input class="page-jump" id="pageJump" type="number" min="1" inputmode="numeric" aria-label="Page number"></label><button class="button" id="nextButton" type="button"><span data-i18n="next">次へ</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></button></div><div class="export-panel"><label class="export-filename" for="outputFilename"><span data-i18n="outputFilename">CSVファイル名</span><span class="filename-control"><input id="outputFilename" type="text" maxlength="120" autocomplete="off" spellcheck="false"><span class="filename-extension">.csv</span></span></label><div class="export-actions"><button class="button" id="copyCsvButton" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span data-i18n="copyCsv">CSVをコピー</span></button><button class="button primary" id="downloadCsvButton" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg><span data-i18n="downloadCsv">CSVを保存</span></button></div></div></div></section></div>
+    </div>
+    <!-- APP:END -->
+    <div class="footer"><span id="footerText"></span></div>
+  </main>
+  <nav class="mobile-bottom-bar" id="mobileBottomBar" aria-label="Sections"><button class="mobile-nav-button active" type="button" data-mobile-target="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span data-i18n="overviewTab">概要</span></button><button class="mobile-nav-button" type="button" data-mobile-target="fields"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h5"/></svg><span data-i18n="schemaTab">スキーマ</span></button><button class="mobile-nav-button" type="button" data-mobile-target="data"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4zM4 10h16M9 5v14M15 5v14"/></svg><span data-i18n="dataTab">データ</span></button></nav>
+  <div class="app-toast" id="appToast" role="status" aria-live="polite" aria-atomic="true" data-tone="default"><div class="app-toast-message" id="appToastMessage"></div><button class="app-toast-action" id="appToastAction" type="button" hidden></button></div>
+  <dialog id="helpDialog" aria-labelledby="helpTitle"><div class="dialog-header"><h2 id="helpTitle" data-i18n="helpTitle">使い方と注意事項</h2><button class="icon-button" id="closeHelpButton" type="button" data-i18n-aria-label="close" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="dialog-body"><!-- APP:HELP:BEGIN --><h3 data-i18n="helpBasicsTitle">基本操作</h3><ol><li data-i18n="helpStep1">.orcファイルを1つまたは複数選択・ドロップします。</li><li data-i18n="helpStep2">ファイル情報で行数、圧縮方式、ストライプ、列統計、メタデータを確認します。</li><li data-i18n="helpStep3">スキーマをTree / Rawで確認し、データをTable / Recordで表示します。</li><li data-i18n="helpStep4">現在ページをCSVとしてコピーまたは保存できます。</li></ol><h3 data-i18n="helpPrivacyTitle">プライバシー</h3><p data-i18n="helpPrivacyBody">読み込んだファイルはブラウザー内だけで処理します。このアプリから外部サーバーへ送信しません。</p><h3 data-i18n="helpNotesTitle">注意事項</h3><ul><li data-i18n="helpNoteContainer">現在のバージョンはApache ORCファイルを閲覧する読み取り専用ツールです。</li><li data-i18n="helpNoteCodec">NONE / ZLIB / SNAPPY / LZ4を読み込みます。ZSTDはブラウザーが対応する場合に利用し、LZOは未対応です。</li><li data-i18n="helpNoteReadOnly">閲覧専用です。元のORCファイルを書き換えません。</li><li data-i18n="helpNoteCsv">CSV出力はファイル全体ではなく現在ページが対象です。</li></ul><p class="dialog-note" data-i18n="helpOffline">配布用HTMLは実行時の外部通信を必要とせず、ローカルファイルとして直接開けます。</p><!-- APP:HELP:END --></div></dialog>
+  <dialog id="cellDialog" aria-labelledby="cellDialogTitle"><div class="dialog-header"><h2 id="cellDialogTitle" data-i18n="cellDetails">セルの内容</h2><button class="icon-button" id="closeCellButton" type="button" data-i18n-aria-label="close" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="dialog-body"><dl class="cell-meta"><dt data-i18n="recordLabel">レコード</dt><dd id="cellLine"></dd><dt data-i18n="fieldLabel">フィールド</dt><dd id="cellField"></dd><dt data-i18n="typeLabel">型</dt><dd id="cellType"></dd></dl><div class="cell-value-box" id="cellValue"></div><div class="dialog-actions"><button class="button" id="copyCellButton" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span data-i18n="copyValue">値をコピー</span></button></div></div></dialog>
+  <dialog id="columnsDialog" aria-labelledby="columnsDialogTitle"><div class="dialog-header"><h2 id="columnsDialogTitle" data-i18n="columnsTitle">表示する列</h2><button class="icon-button" id="closeColumnsButton" type="button" data-i18n-aria-label="close" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="dialog-body"><div class="columns-list" id="columnsList"></div><div class="dialog-actions"><button class="button" id="showAllColumnsButton" type="button" data-i18n="showAllColumns">すべて表示</button><button class="button primary" id="applyColumnsButton" type="button" data-i18n="done">完了</button></div></div></dialog>
+  <script>
+    (() => {
+      'use strict';
+      const APP_CONFIG={"$schema":"./schemas/app-config.schema.json","name":"ORC Viewer","nameJa":"ORC Viewer","slug":"orc-viewer","version":"1.0.0","description":"Open Apache ORC files locally and inspect schema, stripes, column statistics, metadata, and data.","descriptionJa":"Apache ORCファイルをブラウザー内で開き、スキーマ・ストライプ・列統計・メタデータ・データを確認します。","defaultLanguage":"auto","repository":{"owner":"ttomohisa","name":"htmlapps-orc-viewer"},"build":{"output":"dist/index.html","blockRuntimeNetwork":true,"selfExtract":{"enabled":true,"output":"dist/index.self-extract.html"},"sizeBudget":{"readableWarningMb":10,"selfExtractWarningMb":6}}};
+      const BUILD_MANIFEST={"schemaVersion":2,"builder":"single-html-app-template/1.2","generatedAtUtc":"2026-09-04T03:34:29.987233Z","app":{"name":"ORC Viewer","slug":"orc-viewer","version":"1.0.0"},"dependencies":[]};
+      const EMBEDDED_ASSET_BUNDLE={"schemaVersion":2,"dependencies":{}};
+      const assetByteCache=new Map();
+      const blobUrls=new Set();
+      function decodeBase64Bytes(base64){const binary=atob(base64);const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);return bytes;}
+      function getAsset(dependencyId,assetKey){const asset=EMBEDDED_ASSET_BUNDLE.dependencies?.[dependencyId]?.assets?.[assetKey];if(!asset)throw new Error(`Embedded asset not found: ${dependencyId}/${assetKey}`);return asset;}
+      async function inflateAsset(asset){const stored=decodeBase64Bytes(asset.base64);if(!asset.compression||asset.compression==='none')return stored;if(asset.compression!=='gzip')throw new Error(`Unsupported embedded asset compression: ${asset.compression}`);if(typeof DecompressionStream!=='function')throw new Error('This browser cannot expand gzip-compressed embedded assets.');return new Uint8Array(await new Response(new Blob([stored]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());}
+      window.StandaloneAssets=Object.freeze({manifest:BUILD_MANIFEST,list(){return Object.entries(EMBEDDED_ASSET_BUNDLE.dependencies||{}).flatMap(([dependencyId,dependency])=>Object.keys(dependency.assets||{}).map(assetKey=>`${dependencyId}/${assetKey}`));},has(dependencyId,assetKey){return Boolean(EMBEDDED_ASSET_BUNDLE.dependencies?.[dependencyId]?.assets?.[assetKey]);},bytes(dependencyId,assetKey){const asset=getAsset(dependencyId,assetKey);if(asset.compression&&asset.compression!=='none')throw new Error(`Embedded asset ${dependencyId}/${assetKey} is gzip-compressed; use await StandaloneAssets.bytesAsync().`);return decodeBase64Bytes(asset.base64);},async bytesAsync(dependencyId,assetKey){const key=`${dependencyId}/${assetKey}`;if(!assetByteCache.has(key))assetByteCache.set(key,inflateAsset(getAsset(dependencyId,assetKey)));return new Uint8Array(await assetByteCache.get(key));},async blobUrlAsync(dependencyId,assetKey){const asset=getAsset(dependencyId,assetKey);const url=URL.createObjectURL(new Blob([await this.bytesAsync(dependencyId,assetKey)],{type:asset.mime||'application/octet-stream'}));blobUrls.add(url);return url;}});
+      window.addEventListener('pagehide',()=>{blobUrls.forEach(url=>URL.revokeObjectURL(url));blobUrls.clear();});
+      const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+      const textDecoder=new TextDecoder('utf-8',{fatal:false});
+      const storageKey=`${APP_CONFIG.slug}:language`;
+      const state={language:readStorage(storageKey)||preferredLanguage(),files:[],activeId:null,mobilePage:'overview',schemaView:'tree',activeCellText:'',toastTimer:0};
+      const I18N={
+        ja:{brandMeta:'ORCをブラウザー内で確認',introTitle:'ORCを開いてスキーマとデータを確認',lead:'ORCのスキーマ、ストライプ、列統計、メタデータ、データを確認します。現在ページに必要なストライプだけ読み込みます。',localBadge:'完全ローカル処理',dropTitle:'ORCファイルをここにドロップ',dropBody:'ファイル全体を表へ展開せず、末尾情報からスキーマとストライプ構成を先に確認します。',chooseFiles:'ファイルを選択',supportedFormats:'対応: .orc',openFile:'開いているファイル',addFiles:'追加',overviewTitle:'ファイル情報',metadataTitle:'メタデータ',blocksTitle:'ストライプ',statisticsTitle:'列統計',schemaTitle:'スキーマ',treeView:'Tree',rawView:'Raw',copySchema:'スキーマをコピー',dataTitle:'データプレビュー',dataSubtitle:'現在ページに必要なストライプだけ読み込みます。',tableView:'Table',recordView:'Record',columns:'列',rowsPerPage:'1ページの行数',loadingRecords:'レコードを読み込み中…',previous:'前へ',next:'次へ',pageNumber:'ページ番号',outputFilename:'CSVファイル名',copyCsv:'CSVをコピー',downloadCsv:'CSVを保存',overviewTab:'概要',schemaTab:'スキーマ',dataTab:'データ',helpTitle:'使い方と注意事項',close:'閉じる',helpBasicsTitle:'基本操作',helpStep1:'.orcファイルを1つまたは複数選択・ドロップします。',helpStep2:'ファイル情報で行数、圧縮方式、ストライプ、列統計、メタデータを確認します。',helpStep3:'スキーマをTree / Rawで確認し、データをTable / Recordで表示します。',helpStep4:'現在ページをCSVとしてコピーまたは保存できます。',helpPrivacyTitle:'プライバシー',helpPrivacyBody:'読み込んだファイルはブラウザー内だけで処理します。このアプリから外部サーバーへ送信しません。',helpNotesTitle:'注意事項',helpNoteContainer:'現在のバージョンはApache ORCファイルを閲覧する読み取り専用ツールです。',helpNoteCodec:'NONE / ZLIB / SNAPPY / LZ4を読み込みます。ZSTDはブラウザーが対応する場合に利用し、LZOは未対応です。',helpNoteReadOnly:'閲覧専用です。元のORCファイルを書き換えません。',helpNoteCsv:'CSV出力はファイル全体ではなく現在ページが対象です。',helpOffline:'配布用HTMLは実行時の外部通信を必要とせず、ローカルファイルとして直接開けます。',cellDetails:'セルの内容',recordLabel:'レコード',fieldLabel:'フィールド',typeLabel:'型',copyValue:'値をコピー',columnsTitle:'表示する列',showAllColumns:'すべて表示',done:'完了',records:'行',fields:'列',stripes:'ストライプ',compression:'圧縮',format:'形式',fileSize:'ファイルサイズ',orcVersion:'ORCバージョン',footerSize:'フッター',metadataTail:'メタデータ末尾',rowIndexStride:'行インデックス間隔',modified:'更新日時',keyHeader:'キー',valueHeader:'値',columnHeader:'列',statisticsHeader:'統計',metadataCount:'{count}件',blockCount:'{count}ストライプ',fieldCount:'{count}フィールド',statisticsCount:'{count}列',recordsRange:'{start}〜{end} / {total}',pageOf:'{page} / {pages}ページ',statusReady:'読み込みが完了しました。',statusReading:'{name} を確認しています…',statusPending:'確認待ちです。',invalidOrc:'ORCファイルとして読み込めません。',readFailed:'データを読み込めませんでした。',schemaCopied:'スキーマをコピーしました。',csvCopied:'CSVをコピーしました。',csvDownloaded:'CSVを保存しました。',valueCopied:'値をコピーしました。',copyFailed:'コピーできませんでした。',csvFailed:'CSVを作成できませんでした。',noRecords:'表示できるレコードがありません。',recordNo:'レコード {n}',stripeRows:'行',stripeIndex:'インデックス',stripeData:'データ',stripeFooter:'フッター',stripeOffset:'オフセット',empty:'空',nullValue:'null',footer:'ORC Viewer v{version} · 完全ローカル処理'},
+        en:{brandMeta:'Inspect ORC locally in your browser',introTitle:'Open ORC and inspect schema and data',lead:'Inspect ORC schema, stripes, column statistics, metadata, and data. Only stripes needed for the current page are read.',localBadge:'Fully local processing',dropTitle:'Drop ORC files here',dropBody:'Inspect schema and stripe layout from the file tail before expanding data into a table.',chooseFiles:'Choose files',supportedFormats:'Supported: .orc',openFile:'Open files',addFiles:'Add',overviewTitle:'File information',metadataTitle:'Metadata',blocksTitle:'Stripes',statisticsTitle:'Column statistics',schemaTitle:'Schema',treeView:'Tree',rawView:'Raw',copySchema:'Copy schema',dataTitle:'Data preview',dataSubtitle:'Only stripes needed for the current page are read.',tableView:'Table',recordView:'Record',columns:'Columns',rowsPerPage:'Rows per page',loadingRecords:'Loading records…',previous:'Previous',next:'Next',pageNumber:'Page number',outputFilename:'CSV filename',copyCsv:'Copy CSV',downloadCsv:'Save CSV',overviewTab:'Overview',schemaTab:'Schema',dataTab:'Data',helpTitle:'Help and notes',close:'Close',helpBasicsTitle:'Basics',helpStep1:'Choose or drop one or more .orc files.',helpStep2:'Review rows, compression, stripes, column statistics, and metadata.',helpStep3:'Inspect the schema as Tree / Raw and data as Table / Record.',helpStep4:'Copy or save the current page as CSV.',helpPrivacyTitle:'Privacy',helpPrivacyBody:'Files are processed only in your browser and are not sent to an external server by this app.',helpNotesTitle:'Notes',helpNoteContainer:'The current version is a read-only viewer for Apache ORC files.',helpNoteCodec:'NONE, ZLIB, SNAPPY, and LZ4 are supported. ZSTD is used when the browser provides a decoder; LZO is unsupported.',helpNoteReadOnly:'This viewer does not modify the original ORC file.',helpNoteCsv:'CSV export targets the current page, not the entire file.',helpOffline:'The distributable HTML does not require runtime network access and can be opened directly as a local file.',cellDetails:'Cell details',recordLabel:'Record',fieldLabel:'Field',typeLabel:'Type',copyValue:'Copy value',columnsTitle:'Visible columns',showAllColumns:'Show all',done:'Done',records:'Rows',fields:'Columns',stripes:'Stripes',compression:'Compression',format:'Format',fileSize:'File size',orcVersion:'ORC Version',footerSize:'Footer',metadataTail:'Metadata tail',rowIndexStride:'Row index stride',modified:'Modified',keyHeader:'Key',valueHeader:'Value',columnHeader:'Column',statisticsHeader:'Statistics',metadataCount:'{count}',blockCount:'{count} stripes',fieldCount:'{count} fields',statisticsCount:'{count} columns',recordsRange:'{start}–{end} / {total}',pageOf:'Page {page} of {pages}',statusReady:'Ready.',statusReading:'Inspecting {name}…',statusPending:'Waiting to inspect this file.',invalidOrc:'Could not read this as an ORC file.',readFailed:'Could not load data.',schemaCopied:'Schema copied.',csvCopied:'CSV copied.',csvDownloaded:'CSV saved.',valueCopied:'Value copied.',copyFailed:'Could not copy.',csvFailed:'Could not create CSV.',noRecords:'No records to display.',recordNo:'Record {n}',stripeRows:'Rows',stripeIndex:'Index',stripeData:'Data',stripeFooter:'Footer',stripeOffset:'Offset',empty:'Empty',nullValue:'null',footer:'ORC Viewer v{version} · Fully local processing'}
+      };
+      function preferredLanguage(){return /^ja\b/i.test(navigator.language||'')?'ja':'en';}
+      function readStorage(key){try{return localStorage.getItem(key);}catch{return null;}}
+      function writeStorage(key,value){try{localStorage.setItem(key,value);}catch{}}
+      function t(key,vars={}){let s=(I18N[state.language]&&I18N[state.language][key])||I18N.en[key]||key;for(const [k,v] of Object.entries(vars))s=s.replaceAll(`{${k}}`,String(v));return s;}
+      function formatNumber(n){return new Intl.NumberFormat(state.language==='ja'?'ja-JP':'en-US').format(Number(n)||0);}
+      function formatBytes(n){const v=Number(n)||0;if(v<1024)return `${v} B`;const u=['KB','MB','GB','TB'];let x=v/1024,i=0;while(x>=1024&&i<u.length-1){x/=1024;i++;}return `${x>=10?x.toFixed(1):x.toFixed(2)} ${u[i]}`;}
+      function toast(message){clearTimeout(state.toastTimer);$('#appToastMessage').textContent=message;$('#appToast').classList.add('show');state.toastTimer=setTimeout(()=>$('#appToast').classList.remove('show'),2600);}
+      window.AppToast={show:toast};
+      function setStatus(message,tone=''){const box=$('#statusBanner');box.textContent=message||'';box.className=`status-banner${message?' show':''}${tone?` ${tone}`:''}`;}
+      function basename(name){return String(name).replace(/\.[^.]+$/,'');}
+      function safeJson(value,space=2){return JSON.stringify(value,(k,v)=>typeof v==='bigint'?v.toString():v instanceof Uint8Array?bytesToHex(v):v,space);}
+      function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+      function bytesToHex(bytes,limit=96){const take=bytes.subarray(0,Math.min(bytes.length,limit));const hex=[...take].map(v=>v.toString(16).padStart(2,'0')).join(' ');return bytes.length>limit?`${hex} … (${bytes.length} bytes)`:hex;}
+      function prettyValue(value){if(value===null)return 'null';if(value===undefined)return '';if(value instanceof Uint8Array)return bytesToHex(value);if(value instanceof Date)return value.toISOString();if(value instanceof Map)return safeJson(Object.fromEntries(value),2);if(typeof value==='object')return safeJson(value,2);return String(value);}
+      function cellText(value){if(value===null)return 'null';if(value===undefined)return '';if(value instanceof Uint8Array)return bytesToHex(value,32);if(value instanceof Date)return value.toISOString();if(value instanceof Map)return safeJson(Object.fromEntries(value),0);if(typeof value==='object')return safeJson(value,0);return String(value);}
+      function typeOfValue(value){if(value===null)return 'null';if(value instanceof Uint8Array)return 'bytes';if(value instanceof Date)return 'timestamp';if(value instanceof Map)return 'map';if(Array.isArray(value))return 'array';return typeof value==='object'?'object':typeof value;}
+
+      const ORC_KIND_NAMES=['boolean','byte','short','int','long','float','double','string','binary','timestamp','list','map','struct','union','decimal','date','varchar','char'];
+      const COMP_NAMES=['NONE','ZLIB','SNAPPY','LZO','LZ4','ZSTD'];
+      const STREAM_NAMES=['PRESENT','DATA','LENGTH','DICTIONARY_DATA','DICTIONARY_COUNT','SECONDARY','ROW_INDEX','BLOOM_FILTER','BLOOM_FILTER_UTF8'];
+
+      class Cursor{constructor(bytes){this.b=bytes;this.p=0;} left(){return this.b.length-this.p;} u8(){if(this.p>=this.b.length)throw Error('Unexpected end of ORC data');return this.b[this.p++];} take(n){if(n<0||this.p+n>this.b.length)throw Error('Unexpected end of ORC data');const x=this.b.subarray(this.p,this.p+n);this.p+=n;return x;} }
+      function varintCur(c){let x=0n,s=0n;for(let i=0;i<10;i++){const b=c.u8();x|=BigInt(b&127)<<s;if(!(b&128))return x;s+=7n;}throw Error('Invalid varint');}
+      function zigzagBig(x){return (x>>1n)^(-(x&1n));}
+      function safeNum(x){if(typeof x!=='bigint')return x;const n=Number(x);return Number.isSafeInteger(n)?n:x;}
+      function parseProto(bytes){const c=new Cursor(bytes),m=new Map();while(c.left()){const key=varintCur(c),field=Number(key>>3n),wire=Number(key&7n);let v;if(wire===0)v=varintCur(c);else if(wire===1)v=c.take(8);else if(wire===2){const n=Number(varintCur(c));v=c.take(n);}else if(wire===5)v=c.take(4);else throw Error(`Unsupported protobuf wire type ${wire}`);if(!m.has(field))m.set(field,[]);m.get(field).push({wire,value:v});}return m;}
+      const first=(m,n)=>m.get(n)?.[0]?.value;
+      const vals=(m,n)=>m.get(n)?.map(x=>x.value)||[];
+      function uint(m,n,d=0){const v=first(m,n);return v===undefined?d:safeNum(v);}
+      function bool(m,n,d=false){const v=first(m,n);return v===undefined?d:v!==0n;}
+      const utf8d=textDecoder;
+      function text(m,n,d=''){const v=first(m,n);return v===undefined?d:utf8d.decode(v);}
+      function packedVarints(bytes){const c=new Cursor(bytes),out=[];while(c.left())out.push(safeNum(varintCur(c)));return out;}
+      function repeatedPacked(m,n){const out=[];for(const x of m.get(n)||[]){if(x.wire===0)out.push(safeNum(x.value));else if(x.wire===2)out.push(...packedVarints(x.value));}return out;}
+      function little64(bytes){const d=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);return d.getFloat64(0,true);}
+      function little32(bytes){const d=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);return d.getFloat32(0,true);}
+
+      function parsePostScript(bytes){const m=parseProto(bytes);return {footerLength:uint(m,1,0),compression:uint(m,2,0),compressionBlockSize:uint(m,3,262144),version:repeatedPacked(m,4),metadataLength:uint(m,5,0),writerVersion:uint(m,6,0),magic:text(m,8000,'')};}
+      function parseStripeInfo(bytes){const m=parseProto(bytes);return {offset:uint(m,1,0),indexLength:uint(m,2,0),dataLength:uint(m,3,0),footerLength:uint(m,4,0),numberOfRows:uint(m,5,0)};}
+      function parseType(bytes,index){const m=parseProto(bytes);return {index,kind:uint(m,1,0),subtypes:repeatedPacked(m,2),fieldNames:vals(m,3).map(b=>utf8d.decode(b)),maximumLength:uint(m,4,0),precision:uint(m,5,0),scale:uint(m,6,0)};}
+      function parseUserMetadata(bytes){const m=parseProto(bytes);return {name:text(m,1,''),value:first(m,2)||new Uint8Array()};}
+      function parseIntStats(bytes){const m=parseProto(bytes),dec=n=>{const v=first(m,n);return v===undefined?null:safeNum(zigzagBig(v));};return {minimum:dec(1),maximum:dec(2),sum:dec(3)};}
+      function parseDoubleStats(bytes){const m=parseProto(bytes);return {minimum:first(m,1)?little64(first(m,1)):null,maximum:first(m,2)?little64(first(m,2)):null,sum:first(m,3)?little64(first(m,3)):null};}
+      function parseStringStats(bytes){const m=parseProto(bytes);const sv=first(m,3);return {minimum:text(m,1,null),maximum:text(m,2,null),sum:sv===undefined?null:safeNum(zigzagBig(sv))};}
+      function parseDateStats(bytes){const m=parseProto(bytes);const dec=n=>{const v=first(m,n);return v===undefined?null:Number(zigzagBig(v));};return {minimum:dec(1),maximum:dec(2)};}
+      function parseTimestampStats(bytes){const m=parseProto(bytes);const dec=n=>{const v=first(m,n);return v===undefined?null:safeNum(zigzagBig(v));};return {minimum:dec(1),maximum:dec(2),minimumUtc:dec(3),maximumUtc:dec(4)};}
+      function parseColumnStats(bytes){const m=parseProto(bytes),st={numberOfValues:uint(m,1,0),hasNull:bool(m,10,false)};if(first(m,2))st.integer=parseIntStats(first(m,2));if(first(m,3))st.double=parseDoubleStats(first(m,3));if(first(m,4))st.string=parseStringStats(first(m,4));if(first(m,7))st.date=parseDateStats(first(m,7));if(first(m,9))st.timestamp=parseTimestampStats(first(m,9));return st;}
+      function parseFooter(bytes){const m=parseProto(bytes),types=vals(m,4).map((b,i)=>parseType(b,i));return {headerLength:uint(m,1,3),contentLength:uint(m,2,0),stripes:vals(m,3).map(parseStripeInfo),types,metadata:vals(m,5).map(parseUserMetadata),numberOfRows:uint(m,6,0),statistics:vals(m,7).map(parseColumnStats),rowIndexStride:uint(m,8,0),writer:uint(m,9,0)};}
+      function parseStream(bytes){const m=parseProto(bytes);return {kind:uint(m,1,0),column:uint(m,2,0),length:uint(m,3,0)};}
+      function parseEncoding(bytes,index){const m=parseProto(bytes);return {index,kind:uint(m,1,0),dictionarySize:uint(m,2,0),bloomEncoding:uint(m,3,0)};}
+      function parseStripeFooter(bytes){const m=parseProto(bytes);return {streams:vals(m,1).map(parseStream),columns:vals(m,2).map((b,i)=>parseEncoding(b,i)),writerTimezone:text(m,3,'')};}
+
+      async function inflateNative(bytes,format){if(typeof DecompressionStream!=='function')throw Error(`This browser cannot decode ${format}.`);const ds=new DecompressionStream(format);return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer());}
+      async function inflateRaw(bytes){return inflateNative(bytes,'deflate-raw');}
+      function snappyDecode(src){const c=new Cursor(src);const expected=Number(varintCur(c)),out=new Uint8Array(expected);let op=0;while(c.left()&&op<expected){const tag=c.u8(),type=tag&3;if(type===0){let len=(tag>>2)+1;if((tag>>2)>=60){const extra=(tag>>2)-59;let n=0;for(let i=0;i<extra;i++)n|=c.u8()<<(8*i);len=n+1;}out.set(c.take(len),op);op+=len;}else{let len,off;if(type===1){len=4+((tag>>2)&7);off=((tag&0xe0)<<3)|c.u8();}else if(type===2){len=1+(tag>>2);off=c.u8()|(c.u8()<<8);}else{len=1+(tag>>2);off=c.u8()|(c.u8()<<8)|(c.u8()<<16)|(c.u8()<<24);}if(off<=0||off>op)throw Error('Invalid Snappy copy offset');for(let i=0;i<len;i++)out[op+i]=out[op-off+i];op+=len;}}if(op!==expected)throw Error('Truncated Snappy block');return out;}
+      function lz4Decode(src){let ip=0,out=new Uint8Array(Math.max(1024,src.length*4)),op=0;const ensure=n=>{if(n<=out.length)return;let m=out.length;while(m<n)m*=2;const x=new Uint8Array(m);x.set(out);out=x;};while(ip<src.length){const token=src[ip++];let lit=token>>4;if(lit===15){let b;do{if(ip>=src.length)throw Error('Truncated LZ4 literal length');b=src[ip++];lit+=b;}while(b===255);}ensure(op+lit);if(ip+lit>src.length)throw Error('Truncated LZ4 literals');out.set(src.subarray(ip,ip+lit),op);ip+=lit;op+=lit;if(ip>=src.length)break;if(ip+2>src.length)throw Error('Truncated LZ4 offset');const off=src[ip]|(src[ip+1]<<8);ip+=2;if(!off||off>op)throw Error('Invalid LZ4 offset');let ml=(token&15)+4;if((token&15)===15){let b;do{if(ip>=src.length)throw Error('Truncated LZ4 match length');b=src[ip++];ml+=b;}while(b===255);}ensure(op+ml);for(let i=0;i<ml;i++)out[op+i]=out[op-off+i];op+=ml;}return out.subarray(0,op);}
+      async function decompressOrc(bytes,compression){if(compression===0)return bytes;const c=new Cursor(bytes),parts=[];let total=0;while(c.left()){if(c.left()<3)throw Error('Truncated ORC compression header');const a=c.u8(),b=c.u8(),d=c.u8(),h=a|(b<<8)|(d<<16),original=Boolean(h&1),len=h>>>1;if(len>c.left())throw Error('Truncated ORC compression chunk');const chunk=c.take(len);let raw;if(original)raw=chunk;else if(compression===1)raw=await inflateRaw(chunk);else if(compression===2)raw=snappyDecode(chunk);else if(compression===4)raw=lz4Decode(chunk);else if(compression===3)throw Error('LZO-compressed ORC is not supported');else if(compression===5){try{raw=await inflateNative(chunk,'zstd');}catch{throw Error('ZSTD-compressed ORC is not supported by this browser');}}else throw Error(`Unsupported ORC compression ${compression}`);parts.push(raw);total+=raw.length;}const out=new Uint8Array(total);let p=0;for(const x of parts){out.set(x,p);p+=x.length;}return out;}
+
+      function typeLabel(t){if(!t)return 'unknown';const n=ORC_KIND_NAMES[t.kind]||`type_${t.kind}`;if(t.kind===14)return `decimal(${t.precision}, ${t.scale})`;if((t.kind===16||t.kind===17)&&t.maximumLength)return `${n}(${t.maximumLength})`;return n;}
+      function buildSchema(footer){const types=footer.types;if(!types.length)throw Error('ORC type table is empty');const build=(id,name)=>{const t=types[id];if(!t)throw Error(`ORC type ${id} is missing`);const f={id,name:name??`_col${id}`,type:t,nullable:true,children:[]};if(t.kind===12){f.children=t.subtypes.map((sid,i)=>build(sid,t.fieldNames[i]||`field_${i}`));}else if(t.kind===10){f.children=[build(t.subtypes[0],'item')];}else if(t.kind===11){f.children=[build(t.subtypes[0],'key'),build(t.subtypes[1],'value')];}else if(t.kind===13){f.children=t.subtypes.map((sid,i)=>build(sid,`member_${i}`));}return f;};const root=build(0,'root');return {root,fields:root.type.kind===12?root.children:[root]};}
+
+      class BR{constructor(bytes){this.b=bytes;this.p=0;} u8(){if(this.p>=this.b.length)throw Error('Unexpected end of ORC stream');return this.b[this.p++];} left(){return this.b.length-this.p;} take(n){if(this.p+n>this.b.length)throw Error('Unexpected end of ORC stream');const x=this.b.subarray(this.p,this.p+n);this.p+=n;return x;}}
+      function rvU(r){let x=0n,s=0n;for(let i=0;i<10;i++){const b=r.u8();x|=BigInt(b&127)<<s;if(!(b&128))return x;s+=7n;}throw Error('Invalid ORC varint');}
+      function rvS(r){return zigzagBig(rvU(r));}
+      function bigToOut(x){const n=Number(x);return Number.isSafeInteger(n)?n:x.toString();}
+      function byteRle(bytes,limit=Infinity){const r=new BR(bytes),out=[];while(r.left()&&out.length<limit){let h=r.u8();const signed=h>=128?h-256:h;if(signed>=0){const n=signed+3,v=r.u8();for(let i=0;i<n&&out.length<limit;i++)out.push(v);}else{const n=-signed;for(let i=0;i<n&&out.length<limit;i++)out.push(r.u8());}}return out;}
+      function boolRle(bytes,count){const bs=byteRle(bytes,Math.ceil(count/8)),out=[];for(const b of bs)for(let bit=7;bit>=0&&out.length<count;bit--)out.push(Boolean(b&(1<<bit)));return out;}
+      function rleV1(bytes,signed,count=Infinity){const r=new BR(bytes),out=[];while(r.left()&&out.length<count){let h=r.u8(),sh=h>=128?h-256:h;if(sh>=0){const n=sh+3,delta=(r.u8()<<24)>>24;let base=signed?rvS(r):rvU(r);for(let i=0;i<n&&out.length<count;i++)out.push(bigToOut(base+BigInt(delta*i)));}else{const n=-sh;for(let i=0;i<n&&out.length<count;i++)out.push(bigToOut(signed?rvS(r):rvU(r)));}}return out;}
+      function decodeBitWidth(n){if(n<=23)return n+1;return [26,28,30,32,40,48,56,64][n-24]||64;}
+      function readBits(r,count,width){const out=new Array(count);let bits=0,cur=0;for(let i=0;i<count;i++){let need=width,v=0n;while(need>0){if(bits===0){cur=r.u8();bits=8;}const take=Math.min(need,bits),shift=bits-take,mask=(1<<take)-1;v=(v<<BigInt(take))|BigInt((cur>>shift)&mask);bits-=take;need-=take;}out[i]=v;}return out;}
+      function bytesBigBE(r,n){let v=0n;for(let i=0;i<n;i++)v=(v<<8n)|BigInt(r.u8());return v;}
+      function closestBits(width){if(width<=24)return Math.max(1,width);if(width<=26)return 26;if(width<=28)return 28;if(width<=30)return 30;if(width<=32)return 32;if(width<=40)return 40;if(width<=48)return 48;if(width<=56)return 56;return 64;}
+      function rleV2(bytes,signed,count=Infinity){const r=new BR(bytes),out=[];while(r.left()&&out.length<count){const first=r.u8(),enc=first>>6;if(enc===0){const size=((first>>3)&7)+1,n=(first&7)+3;let v=bytesBigBE(r,size);if(signed)v=zigzagBig(v);for(let i=0;i<n&&out.length<count;i++)out.push(bigToOut(v));}else if(enc===1){const width=decodeBitWidth((first>>1)&31);let n=((first&1)<<8)|r.u8();n++;const arr=readBits(r,n,width);for(const x of arr){if(out.length>=count)break;out.push(bigToOut(signed?zigzagBig(x):x));}}else if(enc===2){const width=decodeBitWidth((first>>1)&31);let n=((first&1)<<8)|r.u8();n++;const third=r.u8(),baseWidth=((third>>5)&7)+1,patchWidth=decodeBitWidth(third&31),fourth=r.u8(),gapWidth=((fourth>>5)&7)+1,patchLen=fourth&31;let base=bytesBigBE(r,baseWidth),signBit=1n<<BigInt(baseWidth*8-1);if(base&signBit)base=-(base&~signBit);const data=readBits(r,n,width),patchBits=closestBits(patchWidth+gapWidth),patches=readBits(r,patchLen,patchBits);let pi=0,gap=-1,patch=0n;const pm=(1n<<BigInt(patchWidth))-1n;function nextPatch(){if(pi>=patches.length){gap=Infinity;patch=0n;return;}let actual=0;while(pi<patches.length){const pv=patches[pi++],g=Number(pv>>BigInt(patchWidth)),p=pv&pm;actual+=g;if(g===255&&p===0n)continue;gap+=actual+1;patch=p;break;}}nextPatch();for(let i=0;i<n&&out.length<count;i++){let v=data[i];if(i===gap){v|=patch<<BigInt(width);nextPatch();}out.push(bigToOut(base+v));}}else{let width=(first>>1)&31;if(width!==0)width=decodeBitWidth(width);let n=((first&1)<<8)|r.u8();const firstVal=signed?rvS(r):rvU(r);out.push(bigToOut(firstVal));if(out.length>=count)continue;if(width===0){const delta=rvS(r);for(let i=0;i<n&&out.length<count;i++)out.push(bigToOut(firstVal+delta*BigInt(i+1)));}else{const deltaBase=rvS(r);let prev=firstVal+deltaBase;out.push(bigToOut(prev));n--;const ds=readBits(r,n,width);for(const d of ds){if(out.length>=count)break;prev=deltaBase<0n?prev-d:prev+d;out.push(bigToOut(prev));}}}}return out;}
+      function intStream(bytes,encodingKind,signed,count){return encodingKind>=2?rleV2(bytes,signed,count):rleV1(bytes,signed,count);}
+      function applyPresent(values,present,count){if(!present)return values.slice(0,count);const out=new Array(count);let j=0;for(let i=0;i<count;i++)out[i]=present[i]?(values[j++]??null):null;return out;}
+      function nonNullCount(present,count){if(!present)return count;let n=0;for(let i=0;i<count;i++)if(present[i])n++;return n;}
+      function dateFromDays(days){if(typeof days==='string')return days;try{return new Date(Number(days)*86400000).toISOString().slice(0,10);}catch{return String(days);}}
+      function nanosDecode(v){let n=BigInt(v),zeros=Number(n&7n);n>>=3n;if(zeros)for(let i=0;i<zeros+1;i++)n*=10n;return n;}
+      function timestampFromOrc(seconds,nanos){try{const base=Date.UTC(2015,0,1),ms=base+Number(seconds)*1000+Number(nanos/1000000n);return new Date(ms).toISOString();}catch{return `${seconds}.${nanos}`;}}
+
+      async function parseOrcFile(file,onProgress){if(file.size<4)throw Error('ORC file is too small');const head=new Uint8Array(await file.slice(0,3).arrayBuffer());if(utf8d.decode(head)!=='ORC')throw Error('Missing ORC header magic');const last=new Uint8Array(await file.slice(file.size-1).arrayBuffer()),psLen=last[0];if(!psLen||psLen+1>file.size)throw Error('Invalid ORC PostScript length');const psStart=file.size-1-psLen,psBytes=new Uint8Array(await file.slice(psStart,file.size-1).arrayBuffer()),postscript=parsePostScript(psBytes);if(postscript.magic&&postscript.magic!=='ORC')throw Error('Invalid ORC PostScript magic');const footerEnd=psStart,footerStart=footerEnd-Number(postscript.footerLength);const metaStart=footerStart-Number(postscript.metadataLength);if(metaStart<3)throw Error('Invalid ORC tail lengths');onProgress?.(25);const footerStored=new Uint8Array(await file.slice(footerStart,footerEnd).arrayBuffer()),footerBytes=await decompressOrc(footerStored,Number(postscript.compression)),footer=parseFooter(footerBytes);onProgress?.(70);const schema=buildSchema(footer);let rowStart=0;for(let i=0;i<footer.stripes.length;i++){const s=footer.stripes[i];s.index=i;s.rowStart=rowStart;s.rowEnd=rowStart+Number(s.numberOfRows);rowStart=s.rowEnd;}onProgress?.(100);return {format:'ORC',postscript,footer,schema,compression:Number(postscript.compression),compressionName:COMP_NAMES[Number(postscript.compression)]||String(postscript.compression),footerLength:Number(postscript.footerLength),metadataLength:Number(postscript.metadataLength),totalRows:Number(footer.numberOfRows),stripes:footer.stripes};}
+      async function readStripe(file,header,stripe){const end=Number(stripe.offset)+Number(stripe.indexLength)+Number(stripe.dataLength),sfStored=new Uint8Array(await file.slice(end,end+Number(stripe.footerLength)).arrayBuffer()),sfBytes=await decompressOrc(sfStored,header.compression),sf=parseStripeFooter(sfBytes);let pos=Number(stripe.offset);const streams=new Map();for(const s of sf.streams){const stored=new Uint8Array(await file.slice(pos,pos+Number(s.length)).arrayBuffer());pos+=Number(s.length);if(s.kind>=6)continue;const raw=await decompressOrc(stored,header.compression);streams.set(`${s.column}:${s.kind}`,raw);}return {sf,streams};}
+      function rawAt(streams,col,kind){return streams.get(`${col}:${kind}`)||null;}
+      function decodeColumn(typeId,count,header,stripeData){const t=header.footer.types[typeId],enc=stripeData.sf.columns[typeId]||{kind:0,dictionarySize:0},streams=stripeData.streams,praw=rawAt(streams,typeId,0),present=praw?boolRle(praw,count):null,nn=nonNullCount(present,count),data=rawAt(streams,typeId,1),length=rawAt(streams,typeId,2),dictData=rawAt(streams,typeId,3),secondary=rawAt(streams,typeId,5);let vals=[];
+        switch(t.kind){
+          case 0: vals=data?boolRle(data,nn):Array(nn).fill(false);break;
+          case 1: vals=(data?byteRle(data,nn):[]).map(v=>v>=128?v-256:v);break;
+          case 2:case 3:case 4: vals=data?intStream(data,enc.kind,true,nn):[];break;
+          case 5:{const dv=data?new DataView(data.buffer,data.byteOffset,data.byteLength):null;for(let i=0;i<nn;i++)vals.push(dv.getFloat32(i*4,true));break;}
+          case 6:{const dv=data?new DataView(data.buffer,data.byteOffset,data.byteLength):null;for(let i=0;i<nn;i++)vals.push(dv.getFloat64(i*8,true));break;}
+          case 7:case 16:case 17:{if(enc.kind===1||enc.kind===3){const dlens=length?intStream(length,enc.kind,false,enc.dictionarySize):[],dict=[];let p=0;for(const l of dlens){const n=Number(l);dict.push(utf8d.decode(dictData.subarray(p,p+n)));p+=n;}const ids=data?intStream(data,enc.kind,false,nn):[];vals=ids.map(i=>dict[Number(i)]??'');}else{const lens=length?intStream(length,enc.kind,false,nn):[],raw=data||new Uint8Array();let p=0;for(const l of lens){const n=Number(l);vals.push(utf8d.decode(raw.subarray(p,p+n)));p+=n;}}break;}
+          case 8:{const lens=length?intStream(length,enc.kind,false,nn):[],raw=data||new Uint8Array();let p=0;for(const l of lens){const n=Number(l);vals.push(raw.slice(p,p+n));p+=n;}break;}
+          case 9:{const secs=data?intStream(data,enc.kind,true,nn):[],ns=secondary?intStream(secondary,enc.kind,false,nn):[];vals=secs.map((s,i)=>timestampFromOrc(s,nanosDecode(ns[i]??0)));break;}
+          case 10:{const lens=length?intStream(length,enc.kind,false,nn):[],childCount=lens.reduce((a,b)=>a+Number(b),0),child=decodeColumn(t.subtypes[0],childCount,header,stripeData);let p=0;vals=lens.map(l=>{const n=Number(l),x=child.slice(p,p+n);p+=n;return x;});break;}
+          case 11:{const lens=length?intStream(length,enc.kind,false,nn):[],childCount=lens.reduce((a,b)=>a+Number(b),0),keys=decodeColumn(t.subtypes[0],childCount,header,stripeData),vs=decodeColumn(t.subtypes[1],childCount,header,stripeData);let p=0;vals=lens.map(l=>{const n=Number(l),o={};for(let i=0;i<n;i++)o[String(keys[p+i])]=vs[p+i];p+=n;return o;});break;}
+          case 12:{const children=t.subtypes.map(id=>decodeColumn(id,nn,header,stripeData));for(let i=0;i<nn;i++){const o={};for(let j=0;j<t.subtypes.length;j++)o[t.fieldNames[j]||`field_${j}`]=children[j][i];vals.push(o);}break;}
+          case 13:{const tags=data?byteRle(data,nn):[],counts=t.subtypes.map((_,i)=>tags.filter(x=>x===i).length),children=t.subtypes.map((id,i)=>decodeColumn(id,counts[i],header,stripeData)),used=t.subtypes.map(()=>0);vals=tags.map(tag=>children[tag]?.[used[tag]++]??null);break;}
+          case 14:{const scales=secondary?intStream(secondary,enc.kind,true,nn):Array(nn).fill(t.scale);const r=new BR(data||new Uint8Array());for(let i=0;i<nn;i++){let unscaled=rvS(r),scale=Number(scales[i]??t.scale),neg=unscaled<0n;if(neg)unscaled=-unscaled;let s=unscaled.toString();if(scale>0){s=s.padStart(scale+1,'0');s=`${s.slice(0,-scale)}.${s.slice(-scale)}`;}vals.push(`${neg?'-':''}${s}`);}break;}
+          case 15:{const ds=data?intStream(data,enc.kind,true,nn):[];vals=ds.map(dateFromDays);break;}
+          default: throw Error(`ORC type ${typeLabel(t)} is not supported`);
+        }
+        return applyPresent(vals,present,count);
+      }
+      async function decodeStripeRows(file,header,stripe){const sd=await readStripe(file,header,stripe),root=header.footer.types[0],n=Number(stripe.numberOfRows);if(root.kind===12){const columns=root.subtypes.map(id=>decodeColumn(id,n,header,sd)),rows=new Array(n);for(let i=0;i<n;i++){const o={};for(let j=0;j<root.subtypes.length;j++)o[root.fieldNames[j]||`_col${j}`]=columns[j][i];rows[i]=o;}return rows;}return decodeColumn(0,n,header,sd).map(v=>({value:v}));}
+
+
+      function schemaAsJson(schema){const field=f=>({name:f.name,type:typeLabel(f.type),typeId:f.id,...(f.children?.length?{children:f.children.map(field)}:{})});return {format:'Apache ORC',fields:schema.fields.map(field)};}
+      function rootFields(schema){return schema.fields.map((f,i)=>({...f,index:i}));}
+      function valueForField(record,field){return record&&typeof record==='object'?record[field.name]:undefined;}
+      function visibleFields(fs){return fs.fields.filter(field=>!fs.hiddenFields.has(field.index));}
+      function cachePut(fs,index,rows){fs.stripeCache.set(index,rows);fs.stripeCacheOrder=fs.stripeCacheOrder.filter(v=>v!==index);fs.stripeCacheOrder.push(index);while(fs.stripeCacheOrder.length>2){const old=fs.stripeCacheOrder.shift();fs.stripeCache.delete(old);}}
+      async function decodeStripe(fs,stripe){if(fs.stripeCache.has(stripe.index))return fs.stripeCache.get(stripe.index);const rows=await decodeStripeRows(fs.file,fs.header,stripe);cachePut(fs,stripe.index,rows);return rows;}
+      async function readPage(fs){if(!fs.header)return;fs.loading=true;fs.dataError='';if(state.activeId===fs.id)renderData(fs);try{const start=(fs.page-1)*fs.pageSize,end=Math.min(fs.totalRows,start+fs.pageSize),rows=[];for(const stripe of fs.header.stripes){if(stripe.rowEnd<=start)continue;if(stripe.rowStart>=end)break;const recs=await decodeStripe(fs,stripe),from=Math.max(0,start-stripe.rowStart),to=Math.min(recs.length,end-stripe.rowStart);for(let i=from;i<to;i++)rows.push({recordNumber:stripe.rowStart+i+1,value:recs[i]});}fs.rows=rows;}catch(e){fs.rows=[];fs.dataError=e.message||String(e);}finally{fs.loading=false;if(state.activeId===fs.id){renderData(fs);renderFileStatus(fs);}}}
+      function getActiveFile(){return state.files.find(f=>f.id===state.activeId)||null;}
+      function makeId(){return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;}
+      function buildFileState(file){return {id:makeId(),file,header:null,totalRows:0,fields:[],page:1,pageSize:100,rows:[],viewMode:'table',hiddenFields:new Set(),sort:null,loading:false,error:'',dataError:'',inspection:'pending',inspectionProgress:null,outputFilename:`${basename(file.name)}-preview`,stripeCache:new Map(),stripeCacheOrder:[]};}
+      async function inspectFile(fs){fs.inspection='reading';fs.inspectionProgress=null;fs.error='';fs.dataError='';fs.header=null;fs.rows=[];fs.fields=[];fs.totalRows=0;if(state.activeId===fs.id)renderActive();try{const header=await parseOrcFile(fs.file,p=>{fs.inspectionProgress=p;if(state.activeId===fs.id)renderFileStatus(fs);});fs.header=header;fs.totalRows=header.totalRows;fs.fields=rootFields(header.schema);await readPage(fs);fs.inspection='ready';fs.inspectionProgress=100;if(state.activeId===fs.id)renderActive();}catch(e){fs.inspection='error';fs.inspectionProgress=null;fs.error=e.message||String(e);fs.header=null;fs.rows=[];fs.fields=[];fs.totalRows=0;if(state.activeId===fs.id)renderActive();}}
+      async function addFiles(list){const incoming=Array.from(list||[]),supported=[],unsupported=[];for(const file of incoming)(/\.orc$/i.test(file.name)?supported:unsupported).push(file);if(unsupported.length)toast(t('invalidOrc'));if(!supported.length)return;const added=supported.map(buildFileState);state.files.push(...added);state.activeId=added[0].id;setLoadedUi(true);renderFileManager();renderActive();for(const fs of added){await inspectFile(fs);renderFileManager();if(state.activeId===fs.id)renderActive();}if(state.activeId===added[0].id)renderActive();}
+      function activateFile(id){if(!state.files.some(f=>f.id===id))return;state.activeId=id;renderActive();const fs=getActiveFile();if(fs&&fs.header&&!fs.rows.length&&!fs.loading)readPage(fs);}
+      function closeFile(id){const idx=state.files.findIndex(f=>f.id===id);if(idx<0)return;state.files.splice(idx,1);if(state.activeId===id)state.activeId=state.files[Math.max(0,idx-1)]?.id||state.files[0]?.id||null;renderActive();}
+      function setLoadedUi(loaded){$('#emptyState').style.display=loaded?'none':'block';$('#content').classList.toggle('show',loaded);$('#fileManager').classList.toggle('show',loaded);$('#mobileBottomBar').classList.toggle('show',loaded);document.body.classList.toggle('has-mobile-bar',loaded);}
+      function renderFileManager(){const tabs=$('#fileTabs'),select=$('#fileSelect');tabs.replaceChildren();select.replaceChildren();for(const fs of state.files){const tab=document.createElement('div');tab.className=`file-tab${fs.id===state.activeId?' active':''}`;tab.tabIndex=0;tab.setAttribute('role','button');tab.setAttribute('aria-current',fs.id===state.activeId?'true':'false');const name=document.createElement('span');name.className='file-tab-name';name.textContent=fs.file.name;name.title=fs.file.name;const close=document.createElement('button');close.type='button';close.className='file-tab-close';close.setAttribute('aria-label',`${t('close')} ${fs.file.name}`);close.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>';close.addEventListener('click',e=>{e.stopPropagation();closeFile(fs.id);});tab.append(name,close);tab.addEventListener('click',()=>activateFile(fs.id));tab.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();activateFile(fs.id);}});tabs.append(tab);const opt=document.createElement('option');opt.value=fs.id;opt.textContent=fs.file.name;opt.selected=fs.id===state.activeId;select.append(opt);}}
+      function summaryCard(label,value,extraClass=''){const d=document.createElement('div');d.className='summary-card';const a=document.createElement('span');a.className='summary-label';a.textContent=label;const b=document.createElement('span');b.className=`summary-value${extraClass?` ${extraClass}`:''}`;b.textContent=value;d.append(a,b);return d;}
+      function metadataEntries(fs){const out=[];for(const item of fs.header?.footer?.metadata||[]){let value='';try{value=textDecoder.decode(item.value);}catch{value=bytesToHex(item.value);}if(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value))value=bytesToHex(item.value);out.push([item.name||'(unnamed)',value]);}return out;}
+      function orcVersion(fs){const v=fs.header.postscript.version||[];return v.length?v.join('.'):'—';}
+      function renderOverview(fs){const grid=$('#summaryGrid'),details=$('#detailsGrid'),metadataWrap=$('#metadataWrap'),blocksWrap=$('#blocksWrap'),statsWrap=$('#statisticsWrap');grid.replaceChildren();details.replaceChildren();metadataWrap.replaceChildren();blocksWrap.replaceChildren();statsWrap.replaceChildren();if(!fs?.header){$('#activeFileSubtitle').textContent=fs?.file.name||'';metadataWrap.textContent='—';blocksWrap.textContent='—';statsWrap.textContent='—';$('#metadataCount').textContent=t('metadataCount',{count:0});$('#blocksCount').textContent=t('blockCount',{count:0});$('#statisticsCount').textContent=t('statisticsCount',{count:0});$('#schemaSubtitle').textContent=t('fieldCount',{count:0});renderSchema(fs);return;}$('#activeFileSubtitle').textContent=`${fs.file.name} · ${formatBytes(fs.file.size)}`;grid.append(summaryCard(t('records'),formatNumber(fs.totalRows)),summaryCard(t('fields'),formatNumber(fs.fields.length)),summaryCard(t('stripes'),formatNumber(fs.header.stripes.length)),summaryCard(t('compression'),fs.header.compressionName));const dg=[['format','Apache ORC'],['fileSize',formatBytes(fs.file.size)],['orcVersion',orcVersion(fs)],['footerSize',formatBytes(fs.header.footerLength)],['metadataTail',formatBytes(fs.header.metadataLength)],['rowIndexStride',formatNumber(fs.header.footer.rowIndexStride||0)],['modified',new Date(fs.file.lastModified).toLocaleString(state.language==='ja'?'ja-JP':'en-US')]];for(const [key,val] of dg){const item=document.createElement('div');item.className='detail-row';item.innerHTML=`<span class="detail-label">${escapeHtml(t(key))}</span><strong class="detail-value">${escapeHtml(val)}</strong>`;details.append(item);}renderMetadata(fs);renderStripes(fs);renderStatistics(fs);$('#schemaSubtitle').textContent=t('fieldCount',{count:formatNumber(fs.fields.length)});renderSchema(fs);}
+      function renderMetadata(fs){const wrap=$('#metadataWrap'),entries=metadataEntries(fs);if(!entries.length){wrap.textContent='—';$('#metadataCount').textContent=t('metadataCount',{count:0});return;}const table=document.createElement('table');table.className='mini-table';table.innerHTML=`<thead><tr><th>${escapeHtml(t('keyHeader'))}</th><th>${escapeHtml(t('valueHeader'))}</th></tr></thead>`;const tb=document.createElement('tbody');for(const [k,v] of entries){const tr=document.createElement('tr'),a=document.createElement('td'),b=document.createElement('td');a.className='mini-key';a.textContent=k;b.className='mini-value';b.textContent=String(v);tr.append(a,b);tb.append(tr);}table.append(tb);wrap.append(table);$('#metadataCount').textContent=t('metadataCount',{count:formatNumber(entries.length)});}
+      function renderStripes(fs){const wrap=$('#blocksWrap'),stripes=fs.header.stripes;if(!stripes.length){wrap.textContent='—';$('#blocksCount').textContent=t('blockCount',{count:0});return;}const table=document.createElement('table');table.className='mini-table';table.innerHTML=`<thead><tr><th>#</th><th>${escapeHtml(t('stripeRows'))}</th><th>${escapeHtml(t('stripeIndex'))}</th><th>${escapeHtml(t('stripeData'))}</th><th>${escapeHtml(t('stripeFooter'))}</th><th>${escapeHtml(t('stripeOffset'))}</th></tr></thead>`;const tb=document.createElement('tbody');for(const st of stripes.slice(0,500)){const tr=document.createElement('tr');for(const val of [st.index+1,formatNumber(st.numberOfRows),formatBytes(st.indexLength),formatBytes(st.dataLength),formatBytes(st.footerLength),formatNumber(st.offset)]){const td=document.createElement('td');td.textContent=val;tr.append(td);}tb.append(tr);}table.append(tb);wrap.append(table);$('#blocksCount').textContent=t('blockCount',{count:formatNumber(stripes.length)});}
+      function statText(st,type){if(!st)return '—';const s=st.integer||st.double||st.string||st.date||st.timestamp;if(!s)return st.hasNull?`values ${formatNumber(st.numberOfValues)} · nullあり`:`values ${formatNumber(st.numberOfValues)}`;let min=s.minimumUtc??s.minimum,max=s.maximumUtc??s.maximum;if(type?.kind===15){if(min!=null)min=dateFromDays(min);if(max!=null)max=dateFromDays(max);}return `values ${formatNumber(st.numberOfValues)}${st.hasNull?' · nullあり':''}${min!=null?` · min ${min}`:''}${max!=null?` · max ${max}`:''}`;}
+      function renderStatistics(fs){const wrap=$('#statisticsWrap'),stats=fs.header.footer.statistics||[];if(!fs.fields.length){wrap.textContent='—';$('#statisticsCount').textContent=t('statisticsCount',{count:0});return;}const table=document.createElement('table');table.className='mini-table';table.innerHTML=`<thead><tr><th>${escapeHtml(t('columnHeader'))}</th><th>${escapeHtml(t('typeLabel'))}</th><th>${escapeHtml(t('statisticsHeader'))}</th></tr></thead>`;const tb=document.createElement('tbody');for(const f of fs.fields){const tr=document.createElement('tr');for(const val of [f.name,typeLabel(f.type),statText(stats[f.id],f.type)]){const td=document.createElement('td');td.textContent=String(val);tr.append(td);}tb.append(tr);}table.append(tb);wrap.append(table);$('#statisticsCount').textContent=t('statisticsCount',{count:formatNumber(fs.fields.length)});}
+      function schemaNode(field,parent){const node=document.createElement('div');node.className='schema-node';const row=document.createElement('div');row.className='schema-row';const name=document.createElement('span');name.className='schema-name';name.textContent=field.name||'(unnamed)';const badge=document.createElement('span');badge.className='schema-type';badge.textContent=typeLabel(field.type);const id=document.createElement('span');id.className='schema-logical';id.textContent=`type ${field.id}`;row.append(name,badge,id);node.append(row);if(field.children?.length){const children=document.createElement('div');children.className='schema-children';for(const child of field.children)schemaNode(child,children);node.append(children);}parent.append(node);}
+      function renderSchema(fs){const tree=$('#schemaTree'),raw=$('#schemaRaw');tree.replaceChildren();raw.textContent='';if(!fs?.header)return;for(const field of fs.header.schema.fields)schemaNode(field,tree);raw.textContent=safeJson(schemaAsJson(fs.header.schema),2);}
+      function renderTable(fs){const wrap=$('#dataTableWrap');wrap.replaceChildren();if(!fs.rows.length){const d=document.createElement('div');d.className='table-empty';d.textContent=t('noRecords');wrap.append(d);return;}const fields=visibleFields(fs);const table=document.createElement('table');table.className='data-table';const thead=document.createElement('thead'),tr=document.createElement('tr');const rn=document.createElement('th');rn.textContent='#';tr.append(rn);for(const field of fields){const th=document.createElement('th');th.className='sortable';th.textContent=field.name;th.addEventListener('click',()=>sortByField(fs,field));tr.append(th);}thead.append(tr);table.append(thead);const tb=document.createElement('tbody');for(const row of sortedRows(fs)){const rr=document.createElement('tr');const n=document.createElement('td');n.className='line-number';n.textContent=formatNumber(row.recordNumber);rr.append(n);for(const field of fields){const value=valueForField(row.value,field);const td=document.createElement('td');td.className='data-cell';if(value===null){const span=document.createElement('span');span.className='null-badge';span.textContent='null';td.append(span);}else{td.textContent=cellText(value);if(typeof value==='object'&&value!==null)td.classList.add('complex-cell');}td.tabIndex=0;td.addEventListener('click',()=>openCell(row,field.name,value));td.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openCell(row,field.name,value);}});rr.append(td);}tb.append(rr);}table.append(tb);wrap.append(table);}
+      function renderRecords(fs){const list=$('#recordList');list.replaceChildren();if(!fs.rows.length){const d=document.createElement('div');d.className='table-empty';d.textContent=t('noRecords');list.append(d);return;}for(const row of sortedRows(fs)){const details=document.createElement('details');details.className='record-card';const summary=document.createElement('summary');const line=document.createElement('span');line.className='record-line';line.textContent=t('recordNo',{n:formatNumber(row.recordNumber)});const brief=document.createElement('span');brief.className='record-summary-text';brief.textContent=cellText(row.value).slice(0,160);summary.append(line,brief);const pre=document.createElement('pre');pre.className='record-pre';pre.textContent=prettyValue(row.value);details.append(summary,pre);list.append(details);}}
+      function sortedRows(fs){if(!fs.sort)return fs.rows;const rows=[...fs.rows],field=fs.sort.field,dir=fs.sort.dir;rows.sort((a,b)=>{const x=valueForField(a.value,field),y=valueForField(b.value,field);if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;const sx=typeof x==='object'?cellText(x):x,sy=typeof y==='object'?cellText(y):y;return (sx<sy?-1:sx>sy?1:0)*dir;});return rows;}
+      function sortByField(fs,field){if(!fs.sort||fs.sort.field.index!==field.index)fs.sort={field,dir:1};else if(fs.sort.dir===1)fs.sort.dir=-1;else fs.sort=null;renderData(fs);}
+      function renderPagination(fs){const total=fs.totalRows,pages=Math.max(1,Math.ceil(total/fs.pageSize)),start=total?(fs.page-1)*fs.pageSize+1:0,end=Math.min(total,fs.page*fs.pageSize);$('#pageRangeLabel').textContent=t('recordsRange',{start:formatNumber(start),end:formatNumber(end),total:formatNumber(total)});$('#pageInfo').textContent=t('pageOf',{page:formatNumber(fs.page),pages:formatNumber(pages)});$('#pageJump').value=String(fs.page);$('#pageJump').max=String(pages);$('#prevButton').disabled=fs.page<=1;$('#nextButton').disabled=fs.page>=pages;}
+      function renderData(fs){if(!fs)return;renderPagination(fs);$('#pageSizeSelect').value=String(fs.pageSize);$('#outputFilename').value=fs.outputFilename;$('#tableModeButton').classList.toggle('active',fs.viewMode==='table');$('#recordModeButton').classList.toggle('active',fs.viewMode==='record');$('#columnsButton').hidden=fs.viewMode!=='table';$('#dataLoading').classList.toggle('show',fs.loading);$('#dataTableWrap').classList.toggle('data-view-hidden',fs.loading||fs.viewMode!=='table');$('#recordList').classList.toggle('data-view-hidden',fs.loading||fs.viewMode!=='record');if(fs.loading)return;if(fs.viewMode==='table')renderTable(fs);else renderRecords(fs);}
+      function openCell(row,fieldName,value){$('#cellLine').textContent=formatNumber(row.recordNumber);$('#cellField').textContent=fieldName;$('#cellType').textContent=typeOfValue(value);const text=prettyValue(value);$('#cellValue').textContent=text||t('empty');state.activeCellText=text;$('#cellDialog').showModal();}
+      function renderColumnsDialog(fs){const list=$('#columnsList');list.replaceChildren();for(const field of fs.fields){const label=document.createElement('label');label.className='column-option';const input=document.createElement('input');input.type='checkbox';input.checked=!fs.hiddenFields.has(field.index);input.dataset.index=String(field.index);const span=document.createElement('span');span.textContent=field.name;label.append(input,span);list.append(label);}}
+      function csvEscape(value){const text=String(value??'');return /[",\r\n]/.test(text)?`"${text.replaceAll('"','""')}"`:text;}
+      function buildCurrentCsv(fs){const fields=visibleFields(fs),lines=[];lines.push(['__record',...fields.map(f=>f.name)].map(csvEscape).join(','));for(const row of sortedRows(fs)){lines.push([row.recordNumber,...fields.map(f=>cellText(valueForField(row.value,f)))].map(csvEscape).join(','));}return lines.join('\r\n');}
+      function normalizedFilenameBase(){const fs=getActiveFile(),fallback=fs?`${basename(fs.file.name)}-preview`:APP_CONFIG.slug,input=$('#outputFilename');let base=input.value.trim().replace(/[\\/:*?"<>|\u0000-\u001f]/g,'-').replace(/\.+$/g,'').trim().replace(/\.csv$/i,'')||fallback;if(/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(base))base=`${base}-file`;base=base.slice(0,120);input.value=base;if(fs)fs.outputFilename=base;return base;}
+      async function copyText(text){try{await navigator.clipboard.writeText(text);return true;}catch{const area=document.createElement('textarea');area.value=text;area.style.position='fixed';area.style.left='-9999px';document.body.append(area);area.select();const ok=document.execCommand('copy');area.remove();return ok;}}
+      async function copyCsv(){const fs=getActiveFile();if(!fs)return;try{toast(t(await copyText(buildCurrentCsv(fs))?'csvCopied':'copyFailed'));}catch{toast(t('csvFailed'));}}
+      function downloadCsv(){const fs=getActiveFile();if(!fs)return;try{const url=URL.createObjectURL(new Blob(['\uFEFF',buildCurrentCsv(fs)],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=`${normalizedFilenameBase()}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast(t('csvDownloaded'));}catch{toast(t('csvFailed'));}}
+      function renderFileStatus(fs){if(!fs){setStatus('');return;}if(fs.inspection==='reading'){const progress=Number.isFinite(fs.inspectionProgress)?` ${fs.inspectionProgress}%`:'';setStatus(`${t('statusReading',{name:fs.file.name})}${progress}`);return;}if(fs.inspection==='error'&&!fs.header){setStatus(`${t('invalidOrc')} ${fs.error}`,'error');return;}if(fs.header&&fs.dataError){setStatus(`${t('readFailed')} ${fs.dataError}`,'error');return;}if(fs.inspection==='pending'){setStatus(t('statusPending'));return;}if(fs.header){setStatus(t('statusReady'));return;}setStatus('');}
+      function renderActive(){const fs=getActiveFile();setLoadedUi(Boolean(fs));renderFileManager();if(!fs){setStatus('');return;}renderFileStatus(fs);renderOverview(fs);renderData(fs);}
+      function applyLanguage(){document.documentElement.lang=state.language;$$('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n);});$$('[data-i18n-title]').forEach(el=>{el.title=t(el.dataset.i18nTitle);});$$('[data-i18n-aria-label]').forEach(el=>{el.setAttribute('aria-label',t(el.dataset.i18nAriaLabel));});$('#languageButton').textContent=state.language==='ja'?'EN':'日本語';document.title=state.language==='ja'?APP_CONFIG.nameJa:APP_CONFIG.name;$('#brandName').textContent=state.language==='ja'?APP_CONFIG.nameJa:APP_CONFIG.name;$('#footerText').textContent=t('footer',{version:APP_CONFIG.version});renderActive();}
+      function setMobilePage(page){state.mobilePage=page;$$('.app-page').forEach(el=>el.classList.toggle('mobile-active',el.dataset.mobilePage===page));$$('.mobile-nav-button').forEach(btn=>btn.classList.toggle('active',btn.dataset.mobileTarget===page));window.scrollTo({top:0,behavior:'smooth'});}
+      function closeDialogOnBackdrop(dialog){dialog.addEventListener('click',event=>{const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();});}
+      $('#chooseButton').addEventListener('click',e=>{e.stopPropagation();$('#fileInput').click();});$('#addFilesButton').addEventListener('click',()=>$('#fileInput').click());$('#fileInput').addEventListener('change',async e=>{const files=Array.from(e.target.files||[]);e.target.value='';await addFiles(files);});const dz=$('#dropzone');['dragenter','dragover'].forEach(type=>dz.addEventListener(type,e=>{e.preventDefault();dz.classList.add('dragover');}));['dragleave','drop'].forEach(type=>dz.addEventListener(type,e=>{e.preventDefault();dz.classList.remove('dragover');}));dz.addEventListener('click',()=>$('#fileInput').click());dz.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('#fileInput').click();}});document.addEventListener('dragover',e=>{if(e.dataTransfer?.types?.includes('Files'))e.preventDefault();});document.addEventListener('drop',async e=>{if(!e.dataTransfer?.files?.length)return;e.preventDefault();dz.classList.remove('dragover');const files=Array.from(e.dataTransfer.files);await addFiles(files);});$('#fileSelect').addEventListener('change',e=>activateFile(e.target.value));
+      $('#pageSizeSelect').addEventListener('change',async e=>{const fs=getActiveFile();if(!fs)return;fs.pageSize=Number(e.target.value);fs.page=1;fs.sort=null;await readPage(fs);});$('#prevButton').addEventListener('click',async()=>{const fs=getActiveFile();if(!fs||fs.page<=1)return;fs.page--;fs.sort=null;await readPage(fs);});$('#nextButton').addEventListener('click',async()=>{const fs=getActiveFile();if(!fs)return;const pages=Math.max(1,Math.ceil(fs.totalRows/fs.pageSize));if(fs.page>=pages)return;fs.page++;fs.sort=null;await readPage(fs);});$('#pageJump').addEventListener('change',async e=>{const fs=getActiveFile();if(!fs)return;const pages=Math.max(1,Math.ceil(fs.totalRows/fs.pageSize));fs.page=Math.min(pages,Math.max(1,parseInt(e.target.value,10)||1));fs.sort=null;await readPage(fs);});
+      $('#tableModeButton').addEventListener('click',()=>{const fs=getActiveFile();if(fs){fs.viewMode='table';renderData(fs);}});$('#recordModeButton').addEventListener('click',()=>{const fs=getActiveFile();if(fs){fs.viewMode='record';renderData(fs);}});$('#schemaTreeButton').addEventListener('click',()=>{state.schemaView='tree';$('#schemaTreeButton').classList.add('active');$('#schemaRawButton').classList.remove('active');$('#schemaTree').classList.remove('schema-view-hidden');$('#schemaRaw').classList.add('schema-view-hidden');});$('#schemaRawButton').addEventListener('click',()=>{state.schemaView='raw';$('#schemaRawButton').classList.add('active');$('#schemaTreeButton').classList.remove('active');$('#schemaRaw').classList.remove('schema-view-hidden');$('#schemaTree').classList.add('schema-view-hidden');});$('#copySchemaButton').addEventListener('click',async()=>{const fs=getActiveFile();if(fs)toast(t(await copyText(safeJson(schemaAsJson(fs.header.schema),2))?'schemaCopied':'copyFailed'));});
+      $('#columnsButton').addEventListener('click',()=>{const fs=getActiveFile();if(!fs)return;renderColumnsDialog(fs);$('#columnsDialog').showModal();});$('#closeColumnsButton').addEventListener('click',()=>$('#columnsDialog').close());$('#showAllColumnsButton').addEventListener('click',()=>$$('#columnsList input').forEach(i=>i.checked=true));$('#applyColumnsButton').addEventListener('click',()=>{const fs=getActiveFile();if(!fs)return;fs.hiddenFields.clear();$$('#columnsList input').forEach(i=>{if(!i.checked)fs.hiddenFields.add(Number(i.dataset.index));});$('#columnsDialog').close();renderData(fs);});
+      $('#outputFilename').addEventListener('input',e=>{const fs=getActiveFile();if(fs)fs.outputFilename=e.target.value;});$('#outputFilename').addEventListener('blur',normalizedFilenameBase);$('#copyCsvButton').addEventListener('click',copyCsv);$('#downloadCsvButton').addEventListener('click',downloadCsv);$('#languageButton').addEventListener('click',()=>{state.language=state.language==='ja'?'en':'ja';writeStorage(storageKey,state.language);applyLanguage();});const help=$('#helpDialog');$('#helpButton').addEventListener('click',()=>help.showModal());$('#closeHelpButton').addEventListener('click',()=>help.close());closeDialogOnBackdrop(help);const cell=$('#cellDialog');$('#closeCellButton').addEventListener('click',()=>cell.close());$('#copyCellButton').addEventListener('click',async()=>toast(t(await copyText(state.activeCellText)?'valueCopied':'copyFailed')));closeDialogOnBackdrop(cell);closeDialogOnBackdrop($('#columnsDialog'));$$('.mobile-nav-button').forEach(b=>b.addEventListener('click',()=>setMobilePage(b.dataset.mobileTarget)));
+      $('#versionBadge').textContent=`v${APP_CONFIG.version}`;setLoadedUi(false);applyLanguage();
+    })();
+  </script>
+</body>
+</html>
