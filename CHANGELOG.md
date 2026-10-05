@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Keep page rows, range labels, and CSV aligned when page reads complete out of order.
+- Disable and guard CSV copy/save until the current page is successfully loaded, including initial inspection and read failures.
+- Ignore obsolete loading/error updates and work from closed or reinspected tabs; preserve per-file state and the two-stripe cache.
+- Add small source-level regressions for page races, retry, empty results, tabs, cache reuse, sorting, columns, and export filenames across all release entry points.
+
 ## v1.0.0 - 2026-09-04
 
 - First stable release.

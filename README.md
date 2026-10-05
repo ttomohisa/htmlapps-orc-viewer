@@ -26,6 +26,8 @@ GitHub Pages delivers the initial HTML. After it loads, selected files are read 
 - **Inspect and export current-page data** — Use Table / Record views, column visibility, sorting, Cell Inspector, and CSV copy/save.
 - **Keep per-file state isolated** — A broken ORC file does not block other files or leave stale content in another tab.
 
+CSV copy/save is enabled after the selected page finishes loading successfully. During a page change or after a read error, export is unavailable. To retry a failed page, change the rows per page or switch to another file tab and back. A valid empty file can export the CSV column headers.
+
 ## Quick start
 
 ### Use the web demo
@@ -99,6 +101,8 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-
 ```
 
 The build/verification flow checks the dependency lock, generates the standalone artifacts, verifies unresolved placeholders and runtime-network restrictions, and builds/verifies the self-extracting variant.
+
+The full repository check additionally requires Node.js 24 or later for the small page-state regression suite. The tests use fictitious decoded records and controlled DOM/clipboard/download adapters; they do not replace actual ORC/browser verification. After changing source, regenerate and copy `dist/index.html` to the tracked `orc-viewer.html` before running the full check. Release parity allows only the build timestamp to differ.
 
 ## Privacy and runtime network protection
 

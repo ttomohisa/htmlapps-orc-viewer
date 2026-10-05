@@ -1,0 +1,22 @@
+const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const { resolve } = require('node:path');
+const { gunzipSync } = require('node:zlib');
+const root = resolve(__dirname, '..');
+const read = file => readFileSync(resolve(root, file), 'utf8');
+const source = read('src/index.template.html');
+const readable = read('dist/index.html');
+const tracked = read('orc-viewer.html');
+const wrapper = read('dist/index.self-extract.html');
+const payload = wrapper.match(/<script id="self-extract-payload"[^>]*>([\s\S]*?)<\/script>/);
+assert.ok(payload, 'gzip payload exists');
+assert.equal(gunzipSync(Buffer.from(payload[1].trim(), 'base64')).toString('utf8'), readable, 'self-extract restores exact readable HTML');
+const normalizeTimestamp = text => text.replace(/"generatedAtUtc":"[^"]+"/, '"generatedAtUtc":"BUILD_TIME"');
+assert.equal(normalizeTimestamp(tracked), normalizeTimestamp(readable), 'tracked root HTML matches generated HTML apart from build time; regenerate then copy dist/index.html to orc-viewer.html');
+const app = html => {
+  const start = html.indexOf('      const storageKey=');
+  assert.ok(start > 0, 'application boundary exists');
+  return html.slice(start);
+};
+assert.equal(app(source), app(readable), 'generated app runtime matches source exactly');
+console.log('[OK] Source runtime, tracked root, readable HTML, and self-extract payload agree.');
