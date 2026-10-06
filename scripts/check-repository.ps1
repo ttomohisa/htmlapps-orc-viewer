@@ -229,6 +229,8 @@ if ($ForceDownload) { $buildArguments.ForceDownload = $true }
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw "Node.js 24 or later is required for ORC page regression tests." }
 & node (Join-Path $Root "scripts/test-page-state.cjs")
 if ($LASTEXITCODE -ne 0) { throw "ORC page regression tests failed." }
+& node (Join-Path $Root "scripts/test-root-values.cjs")
+if ($LASTEXITCODE -ne 0) { throw "ORC root-value regression tests failed." }
 & node (Join-Path $Root "scripts/test-release-parity.cjs")
 if ($LASTEXITCODE -ne 0) { throw "ORC release parity check failed." }
 

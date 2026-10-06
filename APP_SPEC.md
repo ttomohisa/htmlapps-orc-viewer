@@ -4,7 +4,7 @@
 
 Open Apache ORC files locally and inspect schema, stripes, column statistics, metadata, and a paged data preview.
 
-## v1.0.0 scope
+## v1.0.1 scope
 
 - One or many `.orc` files
 - Register supported files as separate tabs before parsing, so one broken file does not stop the remaining files from opening
@@ -21,12 +21,18 @@ Open Apache ORC files locally and inspect schema, stripes, column statistics, me
 - Japanese / English and mobile bottom navigation
 - Fully local processing; `connect-src 'none'`
 
-## Non-goals for v1.0.0
+## Non-goals for v1.0.1
 
 - Editing or rewriting ORC
 - SQL/query engine
 - Whole-file CSV export
 - LZO decompression
+
+## Root values and header labels
+
+- Non-STRUCT roots retain the schema field name `root` in decoded row wrappers, Table, Record, Cell Inspector, current-page sorting, and CSV. Null, list, map, union, binary, and logical values are preserved by this wrapper; STRUCT root fields remain unchanged.
+- The header language button shows the target language as EN or JA, with a localized accessible name and tooltip. Keep the existing Japanese/English fully-local badge and privacy explanation.
+- Timestamp decoding is unchanged: presentation is limited to milliseconds and has known writer-time-zone limitations. In the Apache `TestOrcFile.testTimestamp.orc` fixture, records 10 and 12 render one hour earlier than the gold wall-clock values. This patch repairs missing fields, not timestamp fidelity.
 
 ## Page result ownership and CSV readiness
 
@@ -47,8 +53,8 @@ Open Apache ORC files locally and inspect schema, stripes, column statistics, me
 - Table column names are native keyboard-operable buttons. Sorting retains the existing ascending → descending → original-order cycle and current-page comparator, including null-last ordering.
 - Header `aria-sort` and a visible indicator expose direction; after a sort rerender, focus returns to the activated header button when it held focus.
 - Keyboard-activated dialog controls must not be treated as backdrop clicks; only a click targeting the dialog itself and outside its bounds dismisses it.
-- Column indexes remain the identity even for duplicate names. Labels render as text. Parser, nested values, BigInt/binary formatting, CSV schema, page ownership, and two-stripe cache are unchanged.
+- Column indexes remain the identity even for duplicate names. Labels render as text. DECIMAL fields sort by exact numeric value using normalized sign/integer/fraction digits, with nulls last and source-stable equal values in both directions. Other field types retain their comparator. Parser, nested values, BigInt/binary formatting, CSV schema, page ownership, and two-stripe cache are unchanged.
 
 ## Automated regression checks
 
-Run `scripts/check-repository.ps1` with PowerShell and Node.js 24 or later. It builds both standalone variants and runs the same small synthetic page-state and column-inspection regressions against source, readable HTML, the self-extract payload, and tracked root HTML. These tests do not execute a browser or parse actual ORC files.
+Run `scripts/check-repository.ps1` with PowerShell and Node.js 24 or later. It builds both standalone variants and runs the same small synthetic page-state and column-inspection regressions against source, readable HTML, the self-extract payload, and tracked root HTML. The page-state tests use decoder/DOM doubles. The root-value tests also parse genuine pinned Apache ORC timestamp, STRUCT, decimal and empty fixtures and verify Table/Record/Inspector/CSV functions. Collection-root controls isolate the row adapter with a decoder double. None of these Node.js tests execute a browser. Fixture provenance and known timestamp exceptions are documented in `scripts/fixtures/orc/README.md`.

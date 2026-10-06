@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## v1.0.1 - 2026-10-06
+
+- Fix blank Table, Cell Inspector and CSV values for valid non-STRUCT ORC roots by aligning the row wrapper with the schema field name `root`; preserve STRUCT decoding and compression behavior.
+- Fix lexical ordering of DECIMAL columns with exact sign/integer/fraction comparison; preserve null-last ordering, stable ties and non-decimal text ordering.
+- Standardize the language target labels to EN / JA with localized accessible names and tooltips, preserving fully-local privacy wording.
+- Add genuine Apache ORC fixture regressions and explicitly document existing millisecond/writer-time-zone timestamp limitations.
+- Regenerate both standalone variants and the tracked root HTML with canonical patch version 1.0.1.
 
 - Add Japanese/English literal column-name search with a clear action, match count, and no-match state; preserve pending visibility selections across searches and apply all checkbox states with Done.
 - Keep Show all global to every column and add an explicit Cancel action; reopening Columns resets and focuses search.
