@@ -16,6 +16,8 @@ GitHub Pages delivers the initial HTML. After it loads, selected files are read 
 
 [![ORC Viewer screenshot](assets/screenshot-en.png)](https://ttomohisa.github.io/htmlapps-orc-viewer/)
 
+Non-STRUCT root values appear consistently in the `root` column, Record view, Cell Inspector and current-page CSV. The header language target is labeled EN / JA. Timestamp presentation is limited to milliseconds and has known writer-time-zone differences; use a dedicated ORC tool when exact original timestamps are required.
+
 ## Features
 
 - **Inspect the ORC file tail first** — Read PostScript and Footer information before decoding row data.
@@ -58,7 +60,7 @@ Python, Node.js, and a local web server are not required. The builder uses Windo
 4. Browse records with the paging controls. Only stripes needed for the current page are decoded.
 5. Switch between Table and Record views and inspect full nested values in Cell Inspector.
 6. In **Columns**, search top-level column names (literal, case-insensitive), select the columns, and choose **Done**. Search preserves pending selections. **Show all** selects every column, even outside the results; **Cancel** or Esc discards changes. Reopening starts with an empty search.
-7. Activate a Table column-name button by clicking or with Enter / Space to cycle ascending, descending, and original order for the current page. The arrow shows the direction, and keyboard focus stays on the header.
+7. Activate a Table column-name button by clicking or with Enter / Space to cycle ascending, descending, and original order for the current page. The arrow shows the direction, and keyboard focus stays on the header. DECIMAL columns sort numerically without rounding their string values.
 8. Copy or save the current page as CSV. Search alone does not change the table or exported CSV.
 
 ## Publish with GitHub Pages
@@ -124,7 +126,7 @@ The ORC reader is implemented from the public Apache ORC file-format specificati
 
 ## Dependencies
 
-ORC Viewer v1.0.0 does not bundle third-party runtime JavaScript libraries.
+ORC Viewer v1.0.1 does not bundle third-party runtime JavaScript libraries.
 
 See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for format/project notices.
 

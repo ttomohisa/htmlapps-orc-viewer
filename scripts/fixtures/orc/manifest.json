@@ -1,0 +1,22 @@
+{
+  "repository": "apache/orc",
+  "commit": "4dbfe28864d73a20c331ec59cc93249aed37dfef",
+  "files": [
+    {
+      "path": "TestOrcFile.testTimestamp.orc",
+      "sha256": "cfd4df40570d633a98ff0a1e4d294eca5bffd38326f52b6e727fb6339858662c"
+    },
+    {
+      "path": "TestOrcFile.test1.orc",
+      "sha256": "03827180c09f7d3933f7e5d3d504f5b60d93958651473d60ee220c9aace8bea0"
+    },
+    {
+      "path": "TestOrcFile.emptyFile.orc",
+      "sha256": "ce3d39efd750057845ec9b81f99a6192643cd726cba3a09ae333d5e075e82266"
+    },
+    {
+      "path": "decimal.orc",
+      "sha256": "5b9715d9674bcb83ab4939ddfd0bf99eda611b84dc07e3321b8529445c12c496"
+    }
+  ]
+}

@@ -16,6 +16,8 @@ GitHub Pagesから最初のHTMLを読み込んだ後、選択したファイル�
 
 [![ORC Viewerの画面](assets/screenshot.png)](https://ttomohisa.github.io/htmlapps-orc-viewer/)
 
+DECIMAL列は値の精度を落とさず数値順に並べ替えます。ルートがSTRUCT以外の場合も、`root`列・Record・Cell Inspector・現在ページのCSVで値を確認できます。ヘッダーの言語切り替えはEN / JA表記です。時刻の表示はミリ秒単位で、書き込み側のタイムゾーン解釈に既知の差異があります。元の時刻・精度が必要な場合は専用のORCツールで確認してください。
+
 ## 主な機能
 
 - **ORCの末尾情報から確認** — PostScript / Footerを先に読み、行データを展開する前にファイル構造を確認します。
@@ -124,7 +126,7 @@ ORC Readerは公開されているApache ORCファイル形式仕様をもとに
 
 ## 依存関係
 
-ORC Viewer v1.0.0 は、実行時のサードパーティJavaScriptライブラリを同梱していません。
+ORC Viewer v1.0.1 は、実行時のサードパーティJavaScriptライブラリを同梱していません。
 
 形式・プロジェクトに関する補足は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を確認してください。
 
