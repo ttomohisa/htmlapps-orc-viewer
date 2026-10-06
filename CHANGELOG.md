@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add Japanese/English literal column-name search with a clear action, match count, and no-match state; preserve pending visibility selections across searches and apply all checkbox states with Done.
+- Keep Show all global to every column and add an explicit Cancel action; reopening Columns resets and focuses search.
+- Replace click-only sort headers with native buttons, accessible sort direction, visible indicators, and focus restoration without changing the current-page comparator or CSV order.
+- Keep keyboard clicks on dialog controls from being mistaken for backdrop dismissals, and preserve literal special characters in sort-control accessible labels.
+- Extend synthetic regressions for search, draft preservation, native sort controls, focus, and unchanged page/cache/export ownership across all release entry points.
+
 - Keep page rows, range labels, and CSV aligned when page reads complete out of order.
 - Disable and guard CSV copy/save until the current page is successfully loaded, including initial inspection and read failures.
 - Ignore obsolete loading/error updates and work from closed or reinspected tabs; preserve per-file state and the two-stripe cache.

@@ -23,7 +23,7 @@ GitHub Pages delivers the initial HTML. After it loads, selected files are read 
 - **Decode only stripes needed for the current page** — Avoid expanding the entire ORC file into memory at once.
 - **Handle nested values** — Preview primitive values plus struct / list / map / union data supported by the reader.
 - **Support common compression modes** — Read NONE, ZLIB, SNAPPY, and LZ4; use ZSTD when the browser exposes a compatible decoder.
-- **Inspect and export current-page data** — Use Table / Record views, column visibility, sorting, Cell Inspector, and CSV copy/save.
+- **Inspect and export current-page data** — Use Table / Record views, column-name search, visibility, keyboard-accessible sorting, Cell Inspector, and CSV copy/save.
 - **Keep per-file state isolated** — A broken ORC file does not block other files or leave stale content in another tab.
 
 CSV copy/save is enabled after the selected page finishes loading successfully. During a page change or after a read error, export is unavailable. To retry a failed page, change the rows per page or switch to another file tab and back. A valid empty file can export the CSV column headers.
@@ -57,7 +57,9 @@ Python, Node.js, and a local web server are not required. The builder uses Windo
 3. Inspect schema as Tree or Raw.
 4. Browse records with the paging controls. Only stripes needed for the current page are decoded.
 5. Switch between Table and Record views and inspect full nested values in Cell Inspector.
-6. Copy or save the current page as CSV.
+6. In **Columns**, search top-level column names (literal, case-insensitive), select the columns, and choose **Done**. Search preserves pending selections. **Show all** selects every column, even outside the results; **Cancel** or Esc discards changes. Reopening starts with an empty search.
+7. Activate a Table column-name button by clicking or with Enter / Space to cycle ascending, descending, and original order for the current page. The arrow shows the direction, and keyboard focus stays on the header.
+8. Copy or save the current page as CSV. Search alone does not change the table or exported CSV.
 
 ## Publish with GitHub Pages
 

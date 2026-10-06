@@ -28,7 +28,8 @@ function element(tag = 'div') {
     replaceChildren(...children) { this.children = children; this.textContent = ''; },
     addEventListener(name, handler) { this.listeners[name] = handler; },
     setAttribute(name, value) { this[name] = value; },
-    showModal() {}, close() {}, click() {},
+    querySelector(selector) { const index = selector.match(/^\[data-sort-field="(\d+)"\]$/)?.[1]; return this.children.find(child => child.dataset?.sortField === index && index !== undefined) || this.children.map(child => child.querySelector(selector)).find(Boolean) || null; },
+    showModal() { this.open = true; }, close() { this.open = false; }, click() { return this.listeners.click?.({ target: this }); },
   };
 }
 function functionLine(source, name) {
@@ -42,12 +43,13 @@ function appHarness(source) {
     if (!elements.has(selector)) {
       const node = element();
       node.disabled = new RegExp(`id="${selector.slice(1)}"[^>]*\\bdisabled\\b`).test(source);
+      node.focus = () => { context.document.activeElement = node; };
       elements.set(selector, node);
     }
     return elements.get(selector);
   };
   const context = {
-    state: { activeId: null, files: [] }, $, $$: () => [],
+    state: { activeId: null, files: [] }, $, $$: selector => selector === '#columnsList input' ? $('#columnsList').children.map(label => label.children[0]) : [],
     Uint8Array, Date, Map, Set, Blob, Math, Intl, APP_CONFIG: { slug: 'orc-viewer' },
     setTimeout() {}, formatNumber: String,
     t: (key, args = {}) => key + ' ' + JSON.stringify(args), toast() {},
@@ -55,6 +57,7 @@ function appHarness(source) {
     copyText: async text => { copies.push(text); return true; },
     document: { body: element('body'), createElement: tag => {
       const node = element(tag);
+      node.focus = () => { context.document.activeElement = node; };
       if (tag === 'a') node.click = () => downloads.push({ name: node.download, href: node.href });
       return node;
     } },
@@ -66,7 +69,7 @@ function appHarness(source) {
   const start = source.indexOf('      function schemaAsJson(');
   const end = source.indexOf('      function setMobilePage(');
   assert.ok(start >= 0 && end > start, 'application page functions exist');
-  const helpers = ['cellText', 'safeJson', 'bytesToHex', 'basename', 'escapeHtml', 'prettyValue'].map(name => functionLine(source, name)).join('\n');
+  const helpers = ['cellText', 'safeJson', 'bytesToHex', 'basename', 'escapeHtml', 'prettyValue', 'typeOfValue'].map(name => functionLine(source, name)).join('\n');
   vm.runInContext(helpers + '\n' + source.slice(start, end), context);
   // Unrelated metadata UI and native clipboard are controlled sinks; page/table/record UI remains real.
   context.renderOverview = () => {};
@@ -85,7 +88,11 @@ function appHarness(source) {
     return fs;
   }
   const file = makeFile(); context.state.activeId = file.id;
-  const emit = (id, name, value) => $(id).listeners[name]({ target: { value: String(value) } });
+  const emit = (id, name, value) => {
+    if (value !== undefined) $(id).value = String(value);
+    assert.equal(typeof $(id).listeners[name], 'function', `${id} has an actual ${name} handler`);
+    return $(id).listeners[name]({ target: $(id) });
+  };
   const jump = page => emit('#pageJump', 'change', page);
   const rows = (prefix, count = 50) => Array.from({ length: count }, (_, i) => ({ label: `${prefix}${i + 1}`, note: 'fictitious' }));
   const settle = async (work, promise, prefix = 'Alpha') => { work.resolve(rows(prefix, work.stripe.numberOfRows)); await promise; };
@@ -260,4 +267,163 @@ for (const target of targets) {
     assert.equal(h.file.header, null); assert.equal(h.file.inspectionProgress, null);
     assert.equal(h.decodes.length, 0); await h.exportBlocked();
   });
+  check('column-name search is literal, case-insensitive, localized and keeps all indexed drafts mounted', h => {
+    h.file.fields = ['amount', '名前', '[a.*]', '<b>name</b>', 'amount', ' spaced '].map((name, i) => ({ name, index: i * 2 }));
+    h.file.hiddenFields.add(8);
+    h.emit('#columnsButton', 'click');
+    const labels = h.$('#columnsList').children, boxes = labels.map(label => label.children[0]);
+    const visible = () => labels.filter(label => !label.hidden).map(label => label.children[1].textContent);
+    boxes[0].checked = false;
+    h.emit('#columnSearch', 'input', 'AMO');
+    assert.deepEqual(visible(), ['amount', 'amount']);
+    assert.match(h.$('#columnSearchCount').textContent, /"shown":"2","total":"6"/);
+    assert.equal(h.$('#columnsList').children, labels);
+    assert.deepEqual(boxes.map(box => box.dataset.index), ['0', '2', '4', '6', '8', '10']);
+    h.emit('#columnSearch', 'input', '名前'); assert.deepEqual(visible(), ['名前']);
+    h.emit('#columnSearch', 'input', '.*'); assert.deepEqual(visible(), ['[a.*]']);
+    h.emit('#columnSearch', 'input', '<B>'); assert.deepEqual(visible(), ['<b>name</b>']);
+    assert.equal(labels[3].children[1].children.length, 0);
+    h.emit('#columnSearch', 'input', ' '); assert.deepEqual(visible(), [' spaced ']);
+    h.emit('#clearColumnSearchButton', 'click');
+    assert.equal(h.$('#columnSearch').value, ''); assert.equal(visible().length, 6);
+    assert.equal(h.context.document.activeElement, h.$('#columnSearch'));
+    assert.equal(boxes[0].checked, false); assert.equal(boxes[4].checked, false);
+    assert.deepEqual([...h.file.hiddenFields], [8]);
+    assert.match(source, /\.column-option\[hidden\]\s*\{\s*display:\s*none/);
+    const i18n = vm.runInNewContext(source.slice(source.indexOf('      const I18N='), source.indexOf('      function preferredLanguage(')) + '\nI18N');
+    for (const lang of ['ja', 'en']) for (const key of ['findColumns', 'clearColumnSearch', 'columnSearchCount', 'noMatchingColumns', 'columnSearchNote', 'sortColumn', 'cancel']) {
+      assert.equal(typeof i18n[lang][key], 'string', `${lang} ${key}`);
+    }
+    assert.match(source, /<label[^>]*for="columnSearch"/);
+    assert.match(source, /id="columnSearch"[^>]*type="search"/);
+    assert.match(source, /id="columnSearchCount"[^>]*role="status"/);
+  });
+  check('no-match and empty-schema counts do not alter choices; Show all and Done include hidden labels', h => {
+    h.file.hiddenFields.add(1); h.emit('#columnsButton', 'click');
+    const boxes = h.$('#columnsList').children.map(label => label.children[0]);
+    h.emit('#columnSearch', 'input', 'no such column');
+    assert.equal(h.$('#noMatchingColumns').hidden, false);
+    assert.ok(h.$('#columnsList').children.every(label => label.hidden));
+    assert.match(h.$('#columnSearchCount').textContent, /"shown":"0","total":"2"/);
+    assert.deepEqual([...h.file.hiddenFields], [1]);
+    h.emit('#showAllColumnsButton', 'click'); assert.ok(boxes.every(box => box.checked));
+    boxes[0].checked = false;
+    h.emit('#applyColumnsButton', 'click');
+    assert.deepEqual([...h.file.hiddenFields], [0]);
+    assert.equal(h.$('#columnsDialog').open, false);
+    h.emit('#columnsButton', 'click');
+    assert.equal(h.$('#columnSearch').value, '');
+    assert.equal(h.context.document.activeElement, h.$('#columnSearch'));
+    assert.equal(h.$('#columnsList').children[0].children[0].checked, false);
+    h.file.fields = []; h.emit('#columnsButton', 'click');
+    assert.equal(h.$('#columnsList').children.length, 0);
+    assert.match(h.$('#columnSearchCount').textContent, /"shown":"0","total":"0"/);
+  });
+  check('Cancel, close and native dialog cancellation discard all pending visibility changes on reopen', h => {
+    h.file.hiddenFields.add(1);
+    for (const dismissal of ['#cancelColumnsButton', '#closeColumnsButton', 'native-cancel']) {
+      h.emit('#columnsButton', 'click');
+      h.$('#columnsList').children[0].children[0].checked = false;
+      h.$('#columnsList').children[1].children[0].checked = true;
+      h.emit('#columnSearch', 'input', 'note');
+      if (dismissal === 'native-cancel') {
+        // Model the dialog's native Esc default; do not claim a browser keyboard test.
+        assert.equal(h.$('#columnsDialog').listeners.cancel, undefined);
+        h.$('#columnsDialog').close();
+      } else h.emit(dismissal, 'click');
+      assert.deepEqual([...h.file.hiddenFields], [1]);
+      h.emit('#columnsButton', 'click');
+      assert.equal(h.$('#columnSearch').value, '');
+      assert.deepEqual(h.$('#columnsList').children.map(label => label.children[0].checked), [true, false]);
+    }
+  });
+  check('searching 200 columns never changes values, CSV, sort, page ownership or cache and never decodes', async h => {
+    const p = h.jump(1);
+    const payload = { label: 'comma,"quote"\nline', note: { precise: 9007199254740993n, nil: null, binary: new Uint8Array([0, 255]) } };
+    h.decodes[0].resolve([payload]); await p;
+    h.file.fields = [...h.file.fields, ...Array.from({ length: 198 }, (_, index) => ({ name: `field_${index}`, index: index + 2 }))];
+    h.context.sortByField(h.file, h.file.fields[0]);
+    const csv = h.context.buildCurrentCsv(h.file), refs = { ...h.file }, cache = [...h.file.stripeCache];
+    h.emit('#columnsButton', 'click');
+    const labels = h.$('#columnsList').children;
+    assert.equal(labels.length, 200);
+    for (const query of ['FIELD_19', 'no-match', '', 'comma', '9007199254740993']) {
+      h.emit('#columnSearch', 'input', query);
+      assert.equal(h.$('#columnsList').children, labels);
+      assert.equal(h.context.buildCurrentCsv(h.file), csv);
+      for (const key of Object.keys(refs)) assert.equal(h.file[key], refs[key], key);
+      assert.deepEqual([...h.file.stripeCache], cache);
+      assert.equal(h.decodes.length, 1);
+    }
+    assert.ok(labels.every(label => label.hidden), 'values are not searched');
+    assert.equal(h.file.rows[0].value, payload);
+    assert.equal(payload.note.precise, 9007199254740993n);
+    assert.deepEqual([...payload.note.binary], [0, 255]);
+  });
+  check('native sort buttons expose direction, preserve focus and cycle current-page CSV exactly once', async h => {
+    h.file.totalRows = 103; h.file.header.totalRows = 103;
+    Object.assign(h.file.header.stripes[2], { rowEnd: 103, numberOfRows: 3 });
+    const p = h.jump(3); h.decodes[0].resolve([{ label: 'Beta', note: null }, { label: 'Alpha', note: 'z' }, { label: 'Gamma', note: 'a' }]); await p;
+    const headers = () => h.$('#dataTableWrap').children[0].children[0].children[0].children;
+    const button = () => headers()[1].children[0];
+    assert.equal(button()?.tag, 'button', 'sortable TH must contain a native button');
+    assert.equal(button().type, 'button'); assert.equal(button().dataset.sortField, '0');
+    assert.equal(headers()[1].listeners.click, undefined, 'no bubbling duplicate sort activation');
+    assert.equal(button().listeners.keydown, undefined, 'native Enter/Space activation needs no duplicate handler');
+    assert.equal(headers()[1]['aria-sort'], 'none');
+    const originalRows = h.file.rows, originalResult = h.file.pageResult, cache = [...h.file.stripeCache];
+    for (const [direction, first, indicator] of [['ascending', 'Alpha', '↑'], ['descending', 'Gamma', '↓'], ['none', 'Beta', '↕']]) {
+      button().focus(); const oldButton = button(); button().click();
+      assert.notEqual(button(), oldButton); assert.equal(h.context.document.activeElement, button());
+      assert.equal(headers()[1]['aria-sort'], direction);
+      assert.equal(button().children[1].textContent, indicator); assert.equal(button().children[1]['aria-hidden'], 'true');
+      assert.equal(h.context.sortedRows(h.file)[0].value.label, first);
+      assert.equal(h.context.buildCurrentCsv(h.file).split('\r\n')[1].split(',')[1], first);
+      assert.equal(h.file.page, 3); assert.equal(h.file.rows, originalRows); assert.equal(h.file.pageResult, originalResult);
+      assert.deepEqual([...h.file.stripeCache], cache); assert.equal(h.decodes.length, 1);
+    }
+    const other = headers()[2].children[0]; other.focus(); other.click();
+    assert.equal(headers()[1]['aria-sort'], 'none'); assert.equal(headers()[2]['aria-sort'], 'ascending');
+    assert.equal(h.context.sortedRows(h.file)[0].value.note, 'a');
+    assert.equal(h.context.sortedRows(h.file).at(-1).value.note, null, 'existing null-last order is unchanged');
+    h.emit('#columnsButton', 'click'); h.$('#columnsList').children[1].children[0].checked = false;
+    h.emit('#applyColumnsButton', 'click'); assert.equal(h.file.sort.field.index, 1);
+    assert.equal(headers().length, 2); assert.equal(headers()[1]['aria-sort'], 'none');
+  });
+
+  check('sort controls preserve literal replacement-token field names in English and Japanese accessible labels', async h => {
+    const name = '$& $` $\' <名前>';
+    h.file.fields = [{ name, index: 7 }];
+    const p = h.jump(1); h.decodes[0].resolve([{ [name]: 'synthetic' }]); await p;
+    vm.runInContext(source.slice(source.indexOf('      const I18N='), source.indexOf('      function preferredLanguage(')) + '\n' + functionLine(source, 't'), h.context);
+    for (const language of ['en', 'ja']) {
+      h.context.state.language = language; h.context.renderTable(h.file);
+      const button = h.$('#dataTableWrap').children[0].children[0].children[0].children[1].children[0];
+      assert.equal(button.children[0].textContent, name);
+      assert.ok(button['aria-label'].includes(name), `${language}: the accessible name must contain the literal visible field name`);
+    }
+  });
+
+  check('keyboard clicks inside Columns cannot be mistaken for a backdrop dismissal', h => {
+    h.emit('#columnsButton', 'click');
+    const dialog = h.$('#columnsDialog');
+    dialog.getBoundingClientRect = () => ({ left: 100, top: 100, right: 600, bottom: 700 });
+    vm.runInContext(functionLine(source, 'closeDialogOnBackdrop'), h.context);
+    h.context.closeDialogOnBackdrop(dialog);
+    const box = h.$('#columnsList').children[0].children[0]; box.checked = false;
+    h.emit('#columnSearch', 'input', 'no-match');
+    h.emit('#clearColumnSearchButton', 'click');
+    for (const target of [h.$('#clearColumnSearchButton'), h.$('#showAllColumnsButton'), box]) {
+      dialog.listeners.click({ target, detail: 0, clientX: 0, clientY: 0 });
+      assert.equal(dialog.open, true, 'a descendant keyboard click must leave the dialog open');
+    }
+    assert.equal(h.context.document.activeElement, h.$('#columnSearch'));
+    assert.equal(box.checked, false);
+    dialog.listeners.click({ target: dialog, detail: 1, clientX: 200, clientY: 200 });
+    assert.equal(dialog.open, true, 'dialog padding is not the backdrop');
+    dialog.listeners.click({ target: dialog, detail: 1, clientX: 10, clientY: 10 });
+    assert.equal(dialog.open, false, 'a genuine outside backdrop click still closes');
+    assert.equal(h.file.hiddenFields.size, 0, 'backdrop dismissal does not apply drafts');
+  });
+
 }
