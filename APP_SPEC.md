@@ -38,6 +38,17 @@ Open Apache ORC files locally and inspect schema, stripes, column statistics, me
 - A failed page can be retried by changing the rows per page or switching away and back. Inspection or page work from a closed tab cannot restore its rows, cache, progress, or UI.
 - Reinspection invalidates old page results and cached stripes before parsing again. ORC decoding and compression support are unchanged.
 
+## Column selection and current-page sorting
+
+- Columns includes a Japanese/English column-name search, clear action, matching/total count, and no-match state.
+- Search is a literal case-insensitive substring of top-level field names, including Japanese and punctuation. It does not search values or decode more stripes.
+- All checkbox drafts stay mounted while nonmatching labels are hidden. Searching alone never changes visibility, rows, sorting, or CSV output.
+- Done applies every checkbox, including search-hidden labels. Show all checks every column regardless of the query. Cancel, close, backdrop, and native Esc discard pending changes; opening Columns resets the query and focuses search.
+- Table column names are native keyboard-operable buttons. Sorting retains the existing ascending → descending → original-order cycle and current-page comparator, including null-last ordering.
+- Header `aria-sort` and a visible indicator expose direction; after a sort rerender, focus returns to the activated header button when it held focus.
+- Keyboard-activated dialog controls must not be treated as backdrop clicks; only a click targeting the dialog itself and outside its bounds dismisses it.
+- Column indexes remain the identity even for duplicate names. Labels render as text. Parser, nested values, BigInt/binary formatting, CSV schema, page ownership, and two-stripe cache are unchanged.
+
 ## Automated regression checks
 
-Run `scripts/check-repository.ps1` with PowerShell and Node.js 24 or later. It builds both standalone variants and runs the same small synthetic page-state regressions against source, readable HTML, the self-extract payload, and tracked root HTML. These tests do not execute a browser or parse actual ORC files.
+Run `scripts/check-repository.ps1` with PowerShell and Node.js 24 or later. It builds both standalone variants and runs the same small synthetic page-state and column-inspection regressions against source, readable HTML, the self-extract payload, and tracked root HTML. These tests do not execute a browser or parse actual ORC files.
