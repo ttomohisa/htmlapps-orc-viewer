@@ -4,7 +4,7 @@
 
 Open Apache ORC files locally and inspect schema, stripes, column statistics, metadata, and a paged data preview.
 
-## v1.0.1 scope
+## v1.0.2 scope
 
 - One or many `.orc` files
 - Register supported files as separate tabs before parsing, so one broken file does not stop the remaining files from opening
@@ -21,7 +21,7 @@ Open Apache ORC files locally and inspect schema, stripes, column statistics, me
 - Japanese / English and mobile bottom navigation
 - Fully local processing; `connect-src 'none'`
 
-## Non-goals for v1.0.1
+## Non-goals for v1.0.2
 
 - Editing or rewriting ORC
 - SQL/query engine
@@ -58,3 +58,9 @@ Open Apache ORC files locally and inspect schema, stripes, column statistics, me
 ## Automated regression checks
 
 Run `scripts/check-repository.ps1` with PowerShell and Node.js 24 or later. It builds both standalone variants and runs the same small synthetic page-state and column-inspection regressions against source, readable HTML, the self-extract payload, and tracked root HTML. The page-state tests use decoder/DOM doubles. The root-value tests also parse genuine pinned Apache ORC timestamp, STRUCT, decimal and empty fixtures and verify Table/Record/Inspector/CSV functions. Collection-root controls isolate the row adapter with a decoder double. None of these Node.js tests execute a browser. Fixture provenance and known timestamp exceptions are documented in `scripts/fixtures/orc/README.md`.
+
+## Responsive control behavior
+
+Help, Columns, and Cell Inspector keep their Close controls visible in short windows; dialog content scrolls without moving the page behind it.
+- Opening any modal prevents background page scrolling.
+- The local-processing badge retains its shared shield/check icon.

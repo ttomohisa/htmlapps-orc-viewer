@@ -148,7 +148,7 @@ for (const target of targets) {
       assert.equal($('#languageButton').textContent, label); assert.equal($('#languageButton')['aria-label'], accessible); assert.equal($('#languageButton').title, accessible);
       assert.equal(c.t('localBadge'), privacy); assert.ok(c.t('helpRootValues').includes('root'));
     }
-    assert.equal(app.version, '1.0.1'); assert.match(source, /id="versionBadge">v1\.0\.1</);
-    if (target !== 'src/index.template.html') assert.match(source, /"version":"1\.0\.1"/);
+    assert.equal(app.version, '1.0.2'); assert.match(source, /id="versionBadge">v1\.0\.2</);
+    if (target !== 'src/index.template.html') assert.match(source, /"version":"1\.0\.2"/);
   });
 }

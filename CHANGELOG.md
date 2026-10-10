@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.2 - 2026-10-10
+
+- Keep Help, Columns, and Cell Inspector inside short viewports with one shrinking body scrollport and a visible header.
+- Lock background page scrolling while a modal is open, preserving the narrow bottom sheet and safe-area spacing.
+- Add dialog-layout and existing shield-badge regressions across all release entry points.
+
 ## v1.0.1 - 2026-10-06
 
 - Fix blank Table, Cell Inspector and CSV values for valid non-STRUCT ORC roots by aligning the row wrapper with the schema field name `root`; preserve STRUCT decoding and compression behavior.

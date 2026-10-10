@@ -234,6 +234,9 @@ if ($LASTEXITCODE -ne 0) { throw "ORC root-value regression tests failed." }
 & node (Join-Path $Root "scripts/test-release-parity.cjs")
 if ($LASTEXITCODE -ne 0) { throw "ORC release parity check failed." }
 
+& node (Join-Path $Root "scripts/test-dialog-layout.cjs")
+if ($LASTEXITCODE -ne 0) { throw "Layout control regression tests failed." }
+
 Write-Host "[OK] Repository check passed." -ForegroundColor Green
 
 # WebRTC readiness DataChannel regression

@@ -1,5 +1,7 @@
 # ORC Viewer
 
+Help, Columns, and Cell Inspector keep their Close controls visible in short windows; dialog content scrolls without moving the page behind it.
+
 [![GitHub Pages](https://github.com/ttomohisa/htmlapps-orc-viewer/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/ttomohisa/htmlapps-orc-viewer/actions/workflows/deploy-pages.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Single HTML](https://img.shields.io/badge/distribution-single%20HTML-0ea5e9)](https://ttomohisa.github.io/htmlapps-orc-viewer/)
@@ -126,7 +128,7 @@ The ORC reader is implemented from the public Apache ORC file-format specificati
 
 ## Dependencies
 
-ORC Viewer v1.0.1 does not bundle third-party runtime JavaScript libraries.
+ORC Viewer v1.0.2 does not bundle third-party runtime JavaScript libraries.
 
 See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for format/project notices.
 
