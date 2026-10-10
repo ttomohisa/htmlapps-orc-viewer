@@ -1,5 +1,7 @@
 # ORC Viewer
 
+Help・列選択・Cell Inspector は、縦幅が狭い画面でも閉じる操作を表示し、背後のページを動かさずに内容をスクロールできます。
+
 [![GitHub Pages](https://github.com/ttomohisa/htmlapps-orc-viewer/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/ttomohisa/htmlapps-orc-viewer/actions/workflows/deploy-pages.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Single HTML](https://img.shields.io/badge/distribution-single%20HTML-0ea5e9)](https://ttomohisa.github.io/htmlapps-orc-viewer/)
@@ -126,7 +128,7 @@ ORC Readerは公開されているApache ORCファイル形式仕様をもとに
 
 ## 依存関係
 
-ORC Viewer v1.0.1 は、実行時のサードパーティJavaScriptライブラリを同梱していません。
+ORC Viewer v1.0.2 は、実行時のサードパーティJavaScriptライブラリを同梱していません。
 
 形式・プロジェクトに関する補足は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を確認してください。
 
