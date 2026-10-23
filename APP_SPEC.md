@@ -1,5 +1,9 @@
 # ORC Viewer App Spec
 
+## Final Help version information
+
+- Move only the lower informational footer version to the end of Help. Preserve the existing 620px phone hiding for that version, the header version, and the footer name and local-processing wording. No parser, data, export, dependency, or version changes.
+
 ## Purpose
 
 Open Apache ORC files locally and inspect schema, stripes, column statistics, metadata, and a paged data preview.
