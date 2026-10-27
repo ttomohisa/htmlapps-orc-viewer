@@ -14,13 +14,13 @@ if (!targets.length) targets.push('src/index.template.html', 'dist/index.html', 
 function element() {
   return { children: [], dataset: {}, listeners: {}, textContent: '', classList: { add() {}, toggle() {} },
     append(...children) { this.children.push(...children); }, replaceChildren(...children) { this.children = children; },
-    setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { this.listeners[name] = fn; }, showModal() { this.open = true; } };
+    removeAttribute(name){delete this[name];},setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { this.listeners[name] = fn; }, showModal() { this.open = true; } };
 }
 function harness(source) {
   const elements = new Map();
   const $ = selector => { if (!elements.has(selector)) elements.set(selector, element()); return elements.get(selector); };
   const context = vm.createContext({ textDecoder: new TextDecoder(), TextDecoder, TextEncoder, Uint8Array, DataView, ArrayBuffer, Blob, File, Response, DecompressionStream, Date, Map, Set, setTimeout, clearTimeout,
-    APP_CONFIG: { slug: 'orc-viewer' }, state: { files: [], activeId: null }, $, document: { createElement: element }, t: x => x });
+    BrowserKittyUI:require('../components/ui-conventions.js'),APP_CONFIG: { slug: 'orc-viewer' }, state: { files: [], activeId: null }, $, document: { createElement: element }, t: x => x });
   const start = source.indexOf('      function safeJson('), end = source.indexOf("      $('#chooseButton').addEventListener", start);
   assert.ok(start > 0 && end > start);
   const helpers = ['basename', 'formatNumber', 'formatBytes', 'escapeHtml'].map(name => source.split('\n').find(line => line.trim().startsWith(`function ${name}(`))).join('\n');

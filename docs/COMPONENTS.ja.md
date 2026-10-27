@@ -254,3 +254,6 @@ mobileBar.setEnabled('save', true);
 ## WebRTCの接続成立ルール
 
 `webrtc-qr-pairing.html` ではPeerConnectionの `connected` だけをアプリ接続済みとして扱いません。指定した準備完了DataChannelが `open` になって初めて `onConnected` を発火します。独自Channel構成ではreliableな制御Channelを `readyChannelLabel` に指定します。
+
+## 共通UI v1
+固定版UIをビルド時に埋め込み、実行ボタンだけを明示的に指定します。ナビゲーションや表示切替の選択スタイルは維持します。準備状態・コピー処理中・復旧案内を実際のファイル／ページ状態に接続し、一覧から取り除いた後は残るコントロールへフォーカスを移します。

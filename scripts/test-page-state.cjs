@@ -18,17 +18,18 @@ function deferred() {
 function element(tag = 'div') {
   const classes = new Set();
   return {
-    tag, children: [], textContent: '', value: '', disabled: false, hidden: false,
+    tag,isConnected:true,children: [], textContent: '', value: '', disabled: false, hidden: false,
     style: {}, dataset: {}, listeners: {},
     classList: {
       toggle(name, value) { if (value ?? !classes.has(name)) classes.add(name); else classes.delete(name); },
       add(name) { classes.add(name); }, remove(name) { classes.delete(name); }, contains(name) { return classes.has(name); },
     },
-    append(...children) { this.children.push(...children); },
+    append(...children) { for(const child of children)child.parent=this;this.children.push(...children); },
     replaceChildren(...children) { this.children = children; this.textContent = ''; },
     addEventListener(name, handler) { this.listeners[name] = handler; },
+    remove(){this.isConnected=false;if(this.parent)this.parent.children=this.parent.children.filter(c=>c!==this);},removeAttribute(name){delete this[name];},
     setAttribute(name, value) { this[name] = value; },
-    querySelector(selector) { const index = selector.match(/^\[data-sort-field="(\d+)"\]$/)?.[1]; return this.children.find(child => child.dataset?.sortField === index && index !== undefined) || this.children.map(child => child.querySelector(selector)).find(Boolean) || null; },
+    querySelector(selector) {if(selector==='[role="button"]')return this.children.find(c=>c.role==='button')||null; const index = selector.match(/^\[data-sort-field="(\d+)"\]$/)?.[1]; return this.children.find(child => child.dataset?.sortField === index && index !== undefined) || this.children.map(child => child.querySelector(selector)).find(Boolean) || null; },
     showModal() { this.open = true; }, close() { this.open = false; }, click() { return this.listeners.click?.({ target: this }); },
   };
 }
@@ -49,7 +50,7 @@ function appHarness(source) {
     return elements.get(selector);
   };
   const context = {
-    state: { activeId: null, files: [] }, $, $$: selector => selector === '#columnsList input' ? $('#columnsList').children.map(label => label.children[0]) : [],
+    BrowserKittyUI:require('../components/ui-conventions.js'),state: { activeId: null, files: [],cellToken:0,cellBusy:false,cellError:false,language:'en' }, $, $$: selector => selector === '#columnsList input' ? $('#columnsList').children.map(label => label.children[0]) : [],
     Uint8Array, Date, Map, Set, Blob, Math, Intl, APP_CONFIG: { slug: 'orc-viewer' },
     setTimeout() {}, formatNumber: String,
     t: (key, args = {}) => key + ' ' + JSON.stringify(args), toast() {},
@@ -402,6 +403,25 @@ for (const target of targets) {
       assert.equal(button.children[0].textContent, name);
       assert.ok(button['aria-label'].includes(name), `${language}: the accessible name must contain the literal visible field name`);
     }
+  });
+
+
+  check('copy guards double submit and stale page completion without masking the current file status',async h=>{
+    const ready=h.jump(3);await h.settle(h.decodes[0],ready);const work=deferred();let calls=0;h.context.copyText=text=>{calls++;return work.promise;};const copy=h.context.copyCsv();await h.context.copyCsv();assert.equal(calls,1);assert.equal(h.$('#copyCsvButton').disabled,true);
+    const newer=h.jump(1);await h.settle(h.decodes[1],newer,'New');work.resolve(false);await copy;assert.equal(h.file.csvError,false);assert.equal(h.$('#copyCsvButton').disabled,false);
+  });
+  check('failed CSV copy/download retain current rows and persistent translated independent recovery',async h=>{
+    const ready=h.jump(3);await h.settle(h.decodes[0],ready);h.context.copyText=async()=>false;await h.context.copyCsv();assert.equal(h.file.csvError,true);const old=JSON.stringify(h.file.rows);
+    const create=h.context.document.createElement;h.context.document.createElement=tag=>{const node=create(tag);if(tag==='a')node.click=()=>{throw Error('click denied')};return node;};let revoked=0;h.context.URL.revokeObjectURL=()=>revoked++;h.context.downloadCsv();assert.equal(h.file.exportError,true);assert.equal(revoked,1);assert.equal(h.context.document.body.children.length,0);assert.equal(JSON.stringify(h.file.rows),old);
+    vm.runInContext(source.slice(source.indexOf('      const I18N='),source.indexOf('      function preferredLanguage('))+'\n'+functionLine(source,'t'),h.context);h.context.state.language='ja';h.context.renderOperationStatus(h.file);assert.match(h.$('#csvOperationStatus').textContent,/コピーできません/);assert.match(h.$('#csvOperationStatus').textContent,/保存できません/);assert.equal(JSON.stringify(h.file.rows),old);
+    h.context.copyText=async()=>true;await h.context.copyCsv();assert.equal(h.file.csvError,false);assert.equal(h.file.exportError,true);
+  });
+  check('clipboard finally removes temporary field and restores focus chosen while permission was pending',async h=>{
+    const work=deferred(),prior=h.$('#copyCsvButton'),moved=h.$('#columnSearch');h.context.navigator={clipboard:{writeText:()=>work.promise}};h.context.document.activeElement=prior;h.context.document.execCommand=()=>{throw Error('fallback denied')};vm.runInContext(functionLine(source,'copyText'),h.context);
+    const copy=h.context.copyText('immutable');h.context.document.activeElement=moved;work.reject(Error('clipboard denied'));assert.equal(await copy,false);assert.strictEqual(h.context.document.activeElement,moved);assert.equal(h.context.document.body.children.length,0);
+  });
+  check('removing a file invalidates async work and moves focus to a surviving file tab or Choose',h=>{
+    const another=h.makeFile('other.orc');h.context.closeFile(h.file.id);assert.equal(h.context.state.files.length,1);assert.equal(h.context.document.activeElement.role,'button');assert.equal(h.context.state.activeId,another.id);h.context.closeFile(another.id);assert.strictEqual(h.context.document.activeElement,h.$('#chooseButton'));
   });
 
   check('keyboard clicks inside Columns cannot be mistaken for a backdrop dismissal', h => {

@@ -68,3 +68,7 @@ Run `scripts/check-repository.ps1` with PowerShell and Node.js 24 or later. It b
 Help, Columns, and Cell Inspector keep their Close controls visible in short windows; dialog content scrolls without moving the page behind it.
 - Opening any modal prevents background page scrolling.
 - The local-processing badge retains its shared shield/check icon.
+
+## Common UI conventions v1
+Viewing state is tab-only and original ORC files remain read-only. Current-page CSV scope reports the actual row and visible-column counts. File delivery says Download started; failures remain beside the matching copy/download action with retry guidance. Clipboard requests capture payloads, prevent duplicate requests and reject stale page feedback; legacy fallback removes temporary fields in finally and restores only currently owned focus. Inspection/page errors expose a Retry this file action. Closing a file removes it from the list, invalidates existing async work and focuses a surviving tab or Choose files.
+Language starts from URL/common/legacy/browser priority without writes; explicit switches alone persist the common choice and show screen-only guidance on failure. Existing per-file choices, filename and pending Columns checkbox drafts remain intact. Existing page/reinspection invalidation is retained and disclosed before processing. No autosave, backup, Undo or Stop is added to this read-only viewer.

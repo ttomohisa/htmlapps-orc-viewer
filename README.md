@@ -141,3 +141,6 @@ Bug reports and feature proposals are welcome through GitHub Issues. See [CONTRI
 Copyright © 2026 ttomohisa
 
 Licensed under the [MIT License](LICENSE).
+
+### Saving and retention
+Viewing state lasts for this tab. CSV includes the current page and visible columns, with the scope shown before export. Downloads report “Download started.” Copy/download failures stay visible with recovery guidance; file read failures have Retry this file. Removing a file only removes its read-only view from the list.

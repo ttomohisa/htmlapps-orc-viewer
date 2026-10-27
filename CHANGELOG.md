@@ -58,3 +58,6 @@
 - Added local schema, stripe, statistics, metadata, and paged row inspection
 - Added tab-scoped status and error handling for multi-file use
 - Added NONE / ZLIB / SNAPPY / LZ4 decoding with optional browser-native ZSTD
+
+## Unreleased
+- Integrate fixed common UI v1: tab retention, precise CSV scope, persistent copy/download recovery, clipboard/download cleanup, current-page request ownership, file retry and removal focus, shared language priority.

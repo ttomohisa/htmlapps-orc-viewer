@@ -108,3 +108,6 @@ Keep source in one HTML while it remains understandable. When an app grows subst
 - No runtime external resource.
 - Clear state ownership.
 - A build that fails on missing input.
+
+## Common UI v1
+The fixed UI JS/CSS are hash-verified and embedded through scripts/embed-ui-conventions.ps1. Per-file operation state augments existing inspection/page generations. Shared UI owns language resolution/status/button presentation only; all decoder/cache/request logic remains unchanged. Copy feedback is committed only to its captured file/page/header, and downloads always remove anchors and revoke URLs.
