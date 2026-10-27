@@ -420,6 +420,15 @@ for (const target of targets) {
     const work=deferred(),prior=h.$('#copyCsvButton'),moved=h.$('#columnSearch');h.context.navigator={clipboard:{writeText:()=>work.promise}};h.context.document.activeElement=prior;h.context.document.execCommand=()=>{throw Error('fallback denied')};vm.runInContext(functionLine(source,'copyText'),h.context);
     const copy=h.context.copyText('immutable');h.context.document.activeElement=moved;work.reject(Error('clipboard denied'));assert.equal(await copy,false);assert.strictEqual(h.context.document.activeElement,moved);assert.equal(h.context.document.body.children.length,0);
   });
+  for(const action of ['close','new-page'])check('a native clipboard rejection after '+action+' cannot copy stale CSV through fallback',async h=>{
+    const ready=h.jump(3);await h.settle(h.decodes[0],ready);const work=deferred();let fallback=0,created=0;h.context.navigator={clipboard:{writeText:()=>work.promise}};h.context.document.execCommand=()=>{fallback++;return true};const create=h.context.document.createElement;h.context.document.createElement=tag=>{if(tag==='textarea')created++;return create(tag)};vm.runInContext(functionLine(source,'copyText'),h.context);
+    const pending=h.context.copyCsv();if(action==='close')h.context.closeFile(h.file.id);else{const newer=h.jump(1);await h.settle(h.decodes[1],newer,'new');}work.reject(Error('denied'));await pending;assert.equal(fallback,0);assert.equal(created,0);assert.equal(h.context.document.body.children.length,0);assert.equal(h.file.csvError,false);
+  });
+  check('schema and cell clipboard rejection cannot start fallback after header/token ownership changes',async h=>{
+    for(const kind of ['schema','cell']){if(kind==='schema')h.file.header.schema.fields=[];const work=deferred();let fallback=0;h.context.navigator={clipboard:{writeText:()=>work.promise}};h.context.document.execCommand=()=>{fallback++;return true};vm.runInContext(functionLine(source,'copyText'),h.context);if(kind==='cell'){h.context.state.activeCellText='cell';h.context.state.cellToken=1;h.$('#cellDialog').open=true;}
+      const pending=kind==='schema'?h.context.copySchema():h.context.copyCell();if(kind==='schema')h.file.header={schema:{fields:[]}};else h.context.state.cellToken++;work.reject(Error('denied'));await pending;assert.equal(fallback,0);
+    }
+  });
   check('removing a file invalidates async work and moves focus to a surviving file tab or Choose',h=>{
     const another=h.makeFile('other.orc');h.context.closeFile(h.file.id);assert.equal(h.context.state.files.length,1);assert.equal(h.context.document.activeElement.role,'button');assert.equal(h.context.state.activeId,another.id);h.context.closeFile(another.id);assert.strictEqual(h.context.document.activeElement,h.$('#chooseButton'));
   });
